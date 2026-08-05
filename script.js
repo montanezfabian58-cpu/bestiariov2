@@ -1153,53 +1153,100 @@ function executeBattleRound() {
 
     if (matchEnded && b.rewardStats && !b.rewardsApplied) {
         b.rewardsApplied = true;
-        endMessage += "<br><br><strong class='text-indigo-400 text-sm'>--- RECOMPENSAS DE BATALLA ---</strong><br>";
-        
-        Object.keys(b.rewardStats).forEach(charId => {
-            const stats = b.rewardStats[charId];
-            const realChar = state.characters.find(c => c.id === charId || c.nombre === charId || c.name === charId);
-            
-            if (realChar) {
-                let posGain = 0;
-                let negGain = 0;
-                
-                if (teamWon) {
-                    posGain += 3;
-                } else {
-                    negGain += 3;
-                }
-                
-                if (!stats.survived) {
-                    if (stats.kills === 0) {
-                        negGain += 2;
-                    } else if (stats.kills === 1) {
-                        posGain += 1;
-                        negGain += 1;
-                    } else {
-                        posGain += 2;
-                    }
-                } else {
-                    if (stats.kills === 0) {
-                        posGain += 1;
-                        negGain += 1; 
-                    } else {
-                        posGain += 2; 
-                    }
-                }
-
-                realChar.points.pos += posGain;
-                realChar.points.neg += negGain;
-                realChar.battles = (realChar.battles || 0) + 1;
-                
-                endMessage += `<span class='text-xs text-gray-300'>${realChar.name}: +${posGain} Positivos, +${negGain} Negativos (Derrotó a ${stats.kills}${!stats.survived ? ' y murió' : ' y sobrevivió'})</span><br>`;
-            }
-        });
-        
+        const rewards = applyBattleRewards(teamWon);
+        endMessage += "<br><br><strong class='text-indigo-400 text-sm'>Recompensas calculadas. Guarda los puntos desde la ventana emergente.</strong>";
         saveState();
+        setTimeout(() => showBattleRewardsModal(rewards), 450);
     }
 
     b.battleLog = logs.join('<br>') + endMessage;
     renderBattleArena();
+}
+
+function calculateBattleReward(stats, teamWon) {
+    let posGain = teamWon ? 3 : 0;
+    let negGain = teamWon ? 0 : 3;
+
+    if (!stats.survived) {
+        if (stats.kills === 0) {
+            negGain += 2;
+        } else if (stats.kills === 1) {
+            posGain += 1;
+            negGain += 1;
+        } else {
+            posGain += 2;
+        }
+    }
+
+    return { posGain, negGain };
+}
+
+function applyBattleRewards(teamWon) {
+    const b = window.activeBattle;
+    if (!b?.rewardStats) return [];
+
+    return Object.keys(b.rewardStats).map(charId => {
+        const stats = b.rewardStats[charId];
+        const realChar = state.characters.find(c => c.id === charId || c.nombre === charId || c.name === charId);
+        if (!realChar) return null;
+
+        const { posGain, negGain } = calculateBattleReward(stats, teamWon);
+        realChar.points.pos += posGain;
+        realChar.points.neg += negGain;
+        realChar.battles = (realChar.battles || 0) + 1;
+
+        return {
+            id: realChar.id,
+            name: realChar.name,
+            image: realChar.image || realChar.imagen || buildCharacterImagePath(realChar.name),
+            posGain,
+            negGain
+        };
+    }).filter(Boolean);
+}
+
+function showBattleRewardsModal(rewards = []) {
+    const modal = document.getElementById('battle-rewards-modal');
+    const grid = document.getElementById('battle-rewards-cards');
+    if (!modal || !grid) return;
+
+    grid.innerHTML = rewards.map((reward, index) => `
+        <article class="battle-reward-card" style="animation-delay: ${index * 140}ms">
+            <div class="battle-reward-card__image">
+                ${getImageHtml(reward.image, reward.name, 'w-full h-full object-cover')}
+            </div>
+            <h4 class="battle-reward-card__name">${escapeHtml(reward.name)}</h4>
+            <div class="battle-reward-card__points">
+                <span class="battle-reward-points battle-reward-points--pos" style="animation-delay: ${420 + index * 140}ms">+${reward.posGain}</span>
+                <span class="battle-reward-points battle-reward-points--neg" style="animation-delay: ${560 + index * 140}ms">+${reward.negGain}</span>
+            </div>
+        </article>
+    `).join('');
+
+    modal.classList.remove('hidden');
+}
+
+function saveBattleRewardPoints() {
+    const button = document.getElementById('btn-save-battle-rewards');
+    if (button) {
+        button.disabled = true;
+        button.classList.add('battle-reward-save--saving');
+        button.textContent = 'GUARDANDO...';
+    }
+
+    saveState();
+    downloadCharactersJson();
+
+    setTimeout(() => {
+        document.getElementById('battle-rewards-modal')?.classList.add('hidden');
+        closeBattleArena();
+        switchTab('management');
+        if (button) {
+            button.disabled = false;
+            button.classList.remove('battle-reward-save--saving');
+            button.textContent = 'GUARDAR PUNTOS';
+        }
+    }, 800);
 }
 
 function renderBattleArena() {

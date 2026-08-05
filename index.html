@@ -437,6 +437,23 @@
         </div>
     </div>
 
+    <!-- Battle Rewards Modal -->
+    <div id="battle-rewards-modal" class="hidden fixed inset-0 z-[130] flex items-center justify-center p-4 modal-overlay battle-reward-overlay">
+        <div class="battle-reward-modal bg-card w-full max-w-5xl rounded-2xl shadow-2xl border border-indigo-500/60 overflow-hidden">
+            <div class="p-6 md:p-8 border-b border-gray-800 bg-gradient-to-r from-indigo-950/90 via-gray-900 to-emerald-950/80">
+                <p class="text-xs uppercase tracking-[0.35em] text-indigo-300 mb-2">Recompensas de batalla</p>
+                <h3 class="text-3xl md:text-4xl font-black text-white">Tus personajes consiguieron:</h3>
+            </div>
+            <div class="p-6 md:p-8">
+                <div id="battle-rewards-cards" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- Recompensas dinámicas -->
+                </div>
+                <div class="mt-8 flex justify-end">
+                    <button id="btn-save-battle-rewards" onclick="saveBattleRewardPoints()" class="battle-reward-save bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900 disabled:cursor-wait text-white font-black py-3 px-6 rounded-xl transition shadow-lg shadow-emerald-500/30">GUARDAR PUNTOS</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>
