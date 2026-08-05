@@ -8,6 +8,8 @@ let state = {
 // Constants
 const CHARACTER_TYPES = ['Brujas','Titanes', 'Vampiros', 'Monstruo', 'Espíritus', 'Bestias', 'Humanos', 'Magos'];
 const LOCAL_STORAGE_KEY = 'nexusRpgState';
+const ATTRIBUTE_ASSIGNMENT_THRESHOLD = 50;
+const LEVEL_TWO_ATTRIBUTE_BARRIER = 100;
 const ATTRS = [
     { key: 'INT', name: 'Inteligencia', color: 'blue' },
     { key: 'STR', name: 'Fuerza', color: 'red' },
@@ -193,6 +195,7 @@ function normalizeCharacter(char = {}) {
         world: char.world || hitos.sociales || hitos.sociedades || {},
         destiny: char.destiny || hitos.misticos || {},
         pendingMilestones: Number(char.pendingMilestones || metadata.pendingMilestones || 0),
+        pendingStoryChange: Boolean(char.pendingStoryChange || metadata.pendingStoryChange),
         pendingAction: char.pendingAction || null
     };
     normalized.milestones = (normalized.milestones || []).map(milestone => isAutomaticSocietyMilestone(milestone) ? { ...normalizeMilestone(milestone), auto: true } : normalizeMilestone(milestone));
@@ -227,7 +230,7 @@ function toExportCharacter(char) {
         puntos_positivos: char.points.pos,
         puntos_negativos: char.points.neg,
         nivel: char.level,
-        hitos: { tangibles: char.milestones || [], equipamiento: char.equipment || [], mentales: char.mental || [], misticos: normalizeDestiny(char.destiny), sociedades: normalizeWorldStatus(char.world), metadata: { batallas: char.battles, cap: char.cap, breakthroughPoints: char.breakthroughPoints, pendingMilestones: char.pendingMilestones } },
+        hitos: { tangibles: char.milestones || [], equipamiento: char.equipment || [], mentales: char.mental || [], misticos: normalizeDestiny(char.destiny), sociedades: normalizeWorldStatus(char.world), metadata: { batallas: char.battles, cap: char.cap, breakthroughPoints: char.breakthroughPoints, pendingMilestones: char.pendingMilestones, pendingStoryChange: Boolean(char.pendingStoryChange) } },
         imagen: buildCharacterImagePath(char.name)
     };
 }
@@ -368,6 +371,14 @@ function resetCharacterForm() {
     document.getElementById('create-char-title').innerText = 'Reclutar Nuevo Personaje';
     document.getElementById('create-char-submit').innerText = 'Crear Personaje';
     document.getElementById('create-char-cancel').classList.add('hidden');
+    setCharacterEditLock(false);
+}
+
+function setCharacterEditLock(locked) {
+    ['char-type', 'char-story', 'char-int', 'char-str', 'char-spd', 'char-mag'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = locked;
+    });
 }
 
 function editCharacter(charId) {
@@ -384,6 +395,7 @@ function editCharacter(charId) {
     document.getElementById('char-mag').value = char.stats.MAG;
     document.getElementById('create-char-title').innerText = `Editar Personaje: ${char.name}`;
     document.getElementById('create-char-submit').innerText = 'Guardar Cambios';
+    setCharacterEditLock(true);
     document.getElementById('create-char-cancel').classList.remove('hidden');
     document.getElementById('create-char-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -411,6 +423,19 @@ function queueMilestone(char) {
     char.pendingMilestones = (char.pendingMilestones || 0) + 1;
 }
 
+function hasReachedLevelTwoBarrier(char) {
+    return ATTRS.every(attr => Number(char.stats?.[attr.key] || 0) > LEVEL_TWO_ATTRIBUTE_BARRIER);
+}
+
+function grantLevelTwoMilestoneIfReady(char) {
+    if (!char || Number(char.level || 1) >= 2 || !hasReachedLevelTwoBarrier(char)) return false;
+    char.level = 2;
+    char.cap = Math.max(Number(char.cap) || 100, 200);
+    queueMilestone(char);
+    char.pendingStoryChange = true;
+    return true;
+}
+
 
 function getDesignatedMilestoneCount(char) {
     const manualMilestones = (char.milestones || []).filter(m => !isAutomaticSocietyMilestone(m)).length;
@@ -424,7 +449,7 @@ function getDesignatedMilestoneCount(char) {
 }
 
 function getAvailableMilestoneSlots(char) {
-    return Math.max(0, Math.floor((Number(char.battles) || 0) / 30) - getDesignatedMilestoneCount(char));
+    return Math.max(0, Number(char.pendingMilestones) || 0);
 }
 
 function canAddMilestone(char) {
@@ -436,7 +461,7 @@ function renderMilestoneAccessButtons(char) {
     if (!container) return;
     const ready = canAddMilestone(char);
     const readyClass = ready ? ' milestone-ready' : '';
-    const legend = ready ? '<p class="col-span-2 text-center text-xs text-yellow-300 font-bold animate-pulse">Agregar un hito</p>' : '';
+    const legend = ready ? '<p class="col-span-2 text-center text-xs text-yellow-300 font-bold animate-pulse">Agregar un hito disponible por nivel 2</p>' : '';
     container.innerHTML = `
         ${legend}
         <button onclick="openInventoryModal(currentCharId)" class="w-full bg-red-950/70 hover:bg-red-900 border border-red-700 text-white font-bold py-2 rounded-lg transition${readyClass}">⚔️ Inventario</button>
@@ -1456,13 +1481,15 @@ addDomEvent('create-char-form', 'submit', (e) => {
     if (editId) {
         const char = state.characters.find(c => c.id === editId);
         if (!char) return alert('No se encontró el personaje a editar.');
-        Object.assign(char, characterData);
+        char.name = characterData.name;
+        char.image = characterData.image;
         enforceDestinyStats(char);
+        downloadCharactersJson();
     } else {
         state.characters.push({
             id: generateId(), ...characterData,
             level: 1, cap: 100, breakthroughPoints: { INT: 0, STR: 0, SPD: 0, MAG: 0 }, points: { pos: 0, neg: 0 }, battles: 0,
-            milestones: [], equipment: [], mental: [], world: normalizeWorldStatus(), destiny: normalizeDestiny(), pendingMilestones: 0, pendingAction: null
+            milestones: [], equipment: [], mental: [], world: normalizeWorldStatus(), destiny: normalizeDestiny(), pendingMilestones: 0, pendingStoryChange: false, pendingAction: null
         });
     }
     saveState();
@@ -1477,14 +1504,14 @@ function renderGallery() {
 
     state.characters.forEach(char => {
         const totalPoints = char.points.pos + char.points.neg;
-        const needsPoints = totalPoints >= 10;
+        const needsPoints = totalPoints >= ATTRIBUTE_ASSIGNMENT_THRESHOLD;
         const needsMilestone = canAddMilestone(char);
         
         // Prioritize setting pending action states visually
         if (needsPoints) char.pendingAction = 'points';
         
         let badges = '';
-        if (char.pendingAction === 'points') badges += `<span class="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Asignar Puntos!</span>`;
+        if (char.pendingAction === 'points') badges += `<span class="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡50 Puntos listos!</span>`;
         if (needsMilestone) badges += `<span class="absolute top-2 left-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Hito Disponible!</span>`;
 
         const card = document.createElement('div');
@@ -1729,8 +1756,8 @@ function openCharModal(id) {
     if (char.pendingAction === 'points') {
         actionArea.classList.remove('hidden');
         actionArea.innerHTML = `
-            <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">⚠️ Límite de puntos alcanzado (10)</h4>
-            <p class="text-xs text-gray-300 mb-4">Asigna TODOS los puntos positivos a un medidor y TODOS los negativos a otro (pueden ser el mismo). Tope actual: ${char.cap}</p>
+            <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">⚠️ 50 puntos acumulados</h4>
+            <p class="text-xs text-gray-300 mb-4">Asigna TODOS los puntos positivos a un atributo y TODOS los negativos a otro. Al confirmar, ambos contadores se consumen y se descargará personajes.json.</p>
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs mb-1 text-success">Asignar +${char.points.pos} a:</label>
@@ -1749,6 +1776,16 @@ function openCharModal(id) {
         `;
     }
 
+    if (char.pendingStoryChange) {
+        actionArea.classList.remove('hidden');
+        actionArea.innerHTML += `
+            <div class="mt-4 border-t border-gray-700 pt-4">
+                <h4 class="text-sm font-bold text-yellow-300 mb-2">✍️ Historia obligatoria de Nivel 2</h4>
+                <p class="text-xs text-gray-300 mb-3">Antes de cerrar la evolución, modifica la historia del personaje.</p>
+                <textarea id="level-story" rows="4" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">${escapeHtml(char.story)}</textarea>
+                <button onclick="confirmStoryChange()" class="mt-3 w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-2 rounded text-sm transition">Guardar historia y descargar JSON</button>
+            </div>`;
+    }
 
     document.getElementById('char-modal').classList.remove('hidden');
 }
@@ -1832,55 +1869,38 @@ function toggleSocieties() {
 
 function confirmPoints() {
     const char = state.characters.find(c => c.id === currentCharId);
+    if (!char) return;
+    const totalPoints = Number(char.points?.pos || 0) + Number(char.points?.neg || 0);
+    if (totalPoints < ATTRIBUTE_ASSIGNMENT_THRESHOLD) return alert(`Necesitas acumular 50 puntos entre positivos y negativos antes de asignarlos. Actualmente tienes ${totalPoints}.`);
+
     const posAttr = document.getElementById('assign-pos').value;
     const negAttr = document.getElementById('assign-neg').value;
-    
-    // Apply Negative
-    char.stats[negAttr] = Math.max(1, char.stats[negAttr] - char.points.neg);
-    
-    // Apply Positive (with Cap & Breakthrough logic)
-    let pointsToAdd = char.points.pos;
-    let currentStat = char.stats[posAttr];
-    
-    if (currentStat < char.cap) {
-        let space = char.cap - currentStat;
-        if (pointsToAdd <= space) {
-            char.stats[posAttr] += pointsToAdd;
-            pointsToAdd = 0;
-        } else {
-            char.stats[posAttr] = char.cap;
-            pointsToAdd -= space;
-        }
-    }
 
-    // If points remaining and at cap, they go to breakthrough
-    if (pointsToAdd > 0 && char.stats[posAttr] >= char.cap) {
-        char.breakthroughPoints[posAttr] += pointsToAdd;
-        if (char.breakthroughPoints[posAttr] >= 5) {
-            // Level UP!
-            char.level++;
-            char.cap += 100;
-            char.stats[posAttr]++; // Becomes 101 for instance
-            char.breakthroughPoints[posAttr] -= 5; // keep remainder
-            alert(`¡${char.name} ha ROTO SU LÍMITE en ${posAttr} y ha subido a NIVEL ${char.level}! Su nuevo tope es ${char.cap}.`);
-        }
-    }
+    char.stats[posAttr] = Number(char.stats[posAttr] || 0) + Number(char.points.pos || 0);
+    char.stats[negAttr] = Math.max(1, Number(char.stats[negAttr] || 0) - Number(char.points.neg || 0));
 
-    enforceDestinyStats(char);
-
-    // Reset points
     char.points.pos = 0;
     char.points.neg = 0;
     char.pendingAction = null;
-    
-    // Recheck if needs milestone immediately after point assignment
-    if (char.battles > 0 && char.battles % 20 === 0) {
-        // If they haven't claimed it yet, let's just queue it up visually.
-        // To keep simple, we don't auto force it here, it will appear on next click or if already flagged.
-    }
 
+    const leveledUp = grantLevelTwoMilestoneIfReady(char);
+    enforceDestinyStats(char);
     saveState();
-    openCharModal(char.id); // Refresh
+    downloadCharactersJson();
+    if (leveledUp) alert(`¡${char.name} superó 100 en todos sus atributos, subió a Nivel 2 y obtuvo un hito! Ahora debes modificar su historia.`);
+    openCharModal(char.id);
+}
+
+function confirmStoryChange() {
+    const char = state.characters.find(c => c.id === currentCharId);
+    if (!char) return;
+    const nextStory = document.getElementById('level-story').value.trim();
+    if (!nextStory || nextStory === char.story.trim()) return alert('La historia debe modificarse obligatoriamente.');
+    char.story = nextStory;
+    char.pendingStoryChange = false;
+    saveState();
+    downloadCharactersJson();
+    openCharModal(char.id);
 }
 
 function confirmMilestone() {
@@ -1909,6 +1929,7 @@ function confirmMilestone() {
     if (char.pendingAction !== 'points') char.pendingAction = null;
 
     saveState();
+    downloadCharactersJson();
     openCharModal(char.id); // Refresh
 }
 
@@ -1920,7 +1941,7 @@ function openInventoryModal(charId) {
     currentInventoryCharId = charId;
     char.equipment = char.equipment || [];
     document.getElementById('inventory-title').innerText = `⚔️ Inventario de ${char.name}`;
-    setFormAddMode('equipment-form', canAddMilestone(char), `Los hitos se pueden designar solo al completar cada bloque de 30 combates. ${char.name} lleva ${char.battles} combates y no tiene designaciones disponibles; aquí puedes ver los hitos ya asignados.`);
+    setFormAddMode('equipment-form', canAddMilestone(char), `Los hitos solo se pueden designar cuando el personaje sube a nivel 2 al superar 100 en todos sus atributos; aquí puedes ver los hitos ya asignados.`);
     resetEquipmentForm(false);
     renderEquipmentList(char);
     document.getElementById('inventory-modal').classList.remove('hidden');
@@ -1972,9 +1993,9 @@ addDomEvent('equipment-form', 'submit', (e) => {
     item.superior = compactTargets(item.superiorCharacters, item.superiorTypes); item.inferior = compactTargets(item.inferiorCharacters, item.inferiorTypes); item.immune = compactTargets(item.immuneCharacters, item.immuneTypes); item.condition = compactTargets(item.affectedCharacters, item.affectedTypes);
     if (!item.name) return alert('Debes nombrar la posesión.');
     const index = char.equipment.findIndex(eq => eq.id === item.id);
-    if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar 1 hito por cada 30 combates totales del personaje.');
-    if (index >= 0) char.equipment[index] = item; else char.equipment.push(item);
-    window.__editingEquipment = null; saveState(); openInventoryModal(char.id);
+    if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar un hito disponible al subir a nivel 2.');
+    if (index >= 0) char.equipment[index] = item; else { char.equipment.push(item); char.pendingMilestones = Math.max(0, (char.pendingMilestones || 0) - 1); }
+    window.__editingEquipment = null; saveState(); downloadCharactersJson(); openInventoryModal(char.id);
 });
 
 function renderEquipmentList(char) {
@@ -2040,7 +2061,7 @@ function openMentalModal(charId) {
     currentMentalCharId = charId;
     char.mental = char.mental || [];
     document.getElementById('mental-title').innerText = `🧠 Desarrollo de ${char.name}`;
-    setFormAddMode('mental-form', canAddMilestone(char), `Los hitos se pueden designar solo al completar cada bloque de 30 combates. ${char.name} lleva ${char.battles} combates y no tiene designaciones disponibles; aquí puedes ver los hitos ya asignados.`);
+    setFormAddMode('mental-form', canAddMilestone(char), `Los hitos solo se pueden designar cuando el personaje sube a nivel 2 al superar 100 en todos sus atributos; aquí puedes ver los hitos ya asignados.`);
     hydrateMentalAttrOptions();
     resetMentalForm(false);
     renderMentalList(char);
@@ -2092,9 +2113,9 @@ addDomEvent('mental-form', 'submit', (e) => {
     item.trigger = compactTargets(item.triggerCharacters, item.triggerTypes); item.aggravator = compactTargets(item.aggravatorCharacters, item.aggravatorTypes);
     if (!item.name) return alert('Debes nombrar el hito mental.');
     const index = char.mental.findIndex(ms => ms.id === item.id);
-    if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar 1 hito por cada 30 combates totales del personaje.');
-    if (index >= 0) char.mental[index] = item; else char.mental.push(item);
-    window.__editingMental = null; saveState(); openMentalModal(char.id);
+    if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar un hito disponible al subir a nivel 2.');
+    if (index >= 0) char.mental[index] = item; else { char.mental.push(item); char.pendingMilestones = Math.max(0, (char.pendingMilestones || 0) - 1); }
+    window.__editingMental = null; saveState(); downloadCharactersJson(); openMentalModal(char.id);
 });
 
 function renderMentalList(char) {
@@ -2180,7 +2201,7 @@ function openWorldModal(charId) {
     currentWorldCharId = charId;
     char.world = normalizeWorldStatus(char.world);
     document.getElementById('world-title').innerText = `🌎 Mundo de ${getDisplayName(char)}`;
-    setFormAddMode('world-form', canAddMilestone(char), `Los hitos se pueden designar solo al completar cada bloque de 30 combates. ${char.name} lleva ${char.battles} combates y no tiene designaciones disponibles; aquí puedes ver sus hitos de mundo ya asignados.`);
+    setFormAddMode('world-form', canAddMilestone(char), `Los hitos solo se pueden designar cuando el personaje sube a nivel 2 al superar 100 en todos sus atributos; aquí puedes ver sus hitos de mundo ya asignados.`);
     resetWorldForm(false);
     renderWorldSummary(char);
     document.getElementById('world-modal').classList.remove('hidden');
@@ -2240,10 +2261,10 @@ addDomEvent('world-form', 'submit', (e) => {
     if (type === 'Clan' && !isValidClanFor(char, item.memberIds)) return alert('El clan requiere un triángulo donde todos sus miembros sean compañeros entre sí.');
     if ((type === 'Misión Objetivo' || type === 'Deuda') && !item.targetCharacters.length && !item.targetTypes.length) return alert('Selecciona al menos un personaje o tipo de personaje.');
     const index = char.world.milestones.findIndex(ms => ms.id === item.id);
-    if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar 1 hito por cada 30 combates totales del personaje.');
-    if (index >= 0) char.world.milestones[index] = item; else char.world.milestones.push(item);
+    if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar un hito disponible al subir a nivel 2.');
+    if (index >= 0) char.world.milestones[index] = item; else { char.world.milestones.push(item); char.pendingMilestones = Math.max(0, (char.pendingMilestones || 0) - 1); }
     char.world = normalizeWorldStatus(char.world);
-    saveState(); openWorldModal(char.id);
+    saveState(); downloadCharactersJson(); openWorldModal(char.id);
 });
 
 function editWorld(itemId) {
@@ -2279,7 +2300,7 @@ function openDestinyModal(charId) {
     currentDestinyCharId = charId;
     char.destiny = normalizeDestiny(char.destiny);
     document.getElementById('destiny-title').innerText = `🔮 Destino de ${getDisplayName(char)}`;
-    setFormAddMode('destiny-form', canAddMilestone(char), `Los hitos se pueden designar solo al completar cada bloque de 30 combates. ${char.name} lleva ${char.battles} combates y no tiene designaciones disponibles.`);
+    setFormAddMode('destiny-form', canAddMilestone(char), `Los hitos solo se pueden designar cuando el personaje sube a nivel 2 al superar 100 en todos sus atributos.`);
     resetDestinyForm(false);
     renderDestinyList(char);
     document.getElementById('destiny-modal').classList.remove('hidden');
@@ -2322,11 +2343,11 @@ addDomEvent('destiny-form', 'submit', (e) => {
     });
     if (!item.name || !item.narrative) return alert('Debes completar nombre y narrativa.');
     const index = char.destiny.milestones.findIndex(ms => ms.id === item.id);
-    if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar 1 hito por cada 30 combates totales del personaje.');
-    if (index >= 0) char.destiny.milestones[index] = item; else char.destiny.milestones.push(item);
+    if (index < 0 && !canAddMilestone(char)) return alert('Solo puedes designar un hito disponible al subir a nivel 2.');
+    if (index >= 0) char.destiny.milestones[index] = item; else { char.destiny.milestones.push(item); char.pendingMilestones = Math.max(0, (char.pendingMilestones || 0) - 1); }
     char.destiny = normalizeDestiny(char.destiny);
     enforceDestinyStats(char);
-    saveState(); openDestinyModal(char.id);
+    saveState(); downloadCharactersJson(); openDestinyModal(char.id);
 });
 
 function renderDestinyList(char) {
@@ -2608,13 +2629,13 @@ function finishBattle() {
         let wChar = winningTeam[i];
         wChar.battles++;
         wChar.points.pos++;
-        if (wChar.battles % 30 === 0) queueMilestone(wChar);
+        grantLevelTwoMilestoneIfReady(wChar);
         
         // Losers
         let lChar = losingTeam[i];
         lChar.battles++;
         lChar.points.neg++;
-        if (lChar.battles % 30 === 0) queueMilestone(lChar);
+        grantLevelTwoMilestoneIfReady(lChar);
     }
 
     // Process supernatural oath consequences and debt resolutions by individual duel.
