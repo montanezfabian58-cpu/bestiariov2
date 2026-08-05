@@ -4,10 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RPG Card Battler</title>
-    <script src="script.js"></script>
+    <script>
+        window.tailwind = {
+            config: {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        colors: {
+                            dark: '#121212',
+                            darker: '#0a0a0a',
+                            card: '#1e1e1e',
+                            primary: '#6366f1',
+                            danger: '#ef4444',
+                            success: '#10b981'
+                        },
+                        fontFamily: {
+                            sans: ['Inter', 'sans-serif'],
+                        }
+                    }
+                }
+            }
+        };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
 
 </head>
 <body class="bg-darker min-h-screen text-gray-200">

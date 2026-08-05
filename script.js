@@ -1,23 +1,3 @@
-window.tailwind = window.tailwind || {};
-window.tailwind.config = {
-    darkMode: 'class',
-    theme: {
-        extend: {
-            colors: {
-                dark: '#121212',
-                darker: '#0a0a0a',
-                card: '#1e1e1e',
-                primary: '#6366f1',
-                danger: '#ef4444',
-                success: '#10b981'
-            },
-            fontFamily: {
-                sans: ['Inter', 'sans-serif'],
-            }
-        }
-    }
-}
-
 // State Management
 let state = {
     characters: [],

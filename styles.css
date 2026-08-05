@@ -1,6 +1,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 
-body { font-family: 'Inter', sans-serif; background-color: var(--tw-colors-darker); color: #e5e5e5; }
+:root {
+    color-scheme: dark;
+    --color-dark: #121212;
+    --color-darker: #0a0a0a;
+    --color-card: #1e1e1e;
+    --color-primary: #6366f1;
+}
+
+html, body { min-height: 100%; background-color: var(--color-darker); }
+body { font-family: 'Inter', sans-serif; color: #e5e5e5; }
+
+/* Stable fallbacks for the custom Tailwind colors. They keep the UI readable even
+   while the CDN compiler is loading or if custom utility generation fails. */
+.bg-dark { background-color: var(--color-dark) !important; }
+.bg-darker { background-color: var(--color-darker) !important; }
+.bg-card { background-color: var(--color-card) !important; }
+.bg-primary { background-color: var(--color-primary) !important; }
+.text-primary { color: var(--color-primary) !important; }
+.border-primary { border-color: var(--color-primary) !important; }
+.focus\:border-primary:focus { border-color: var(--color-primary) !important; }
+.shadow-indigo-500\/30 { --tw-shadow-color: rgb(99 102 241 / 0.3); }
+
+input, textarea, select { background-color: var(--color-dark); color: #f8fafc; }
+select option { background-color: var(--color-dark); color: #f8fafc; }
+input::placeholder, textarea::placeholder { color: #9ca3af; opacity: 1; }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 8px; }
