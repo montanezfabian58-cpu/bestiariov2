@@ -1041,18 +1041,25 @@ function executeBattleRound() {
     stats.forEach(stat => {
         const pIdx = pSel[stat.key];
         const oIdx = oSel[stat.key];
-        const oCard = b.opponentHand[oIdx];
-        const oVal = getCardStatValue(oCard, stat.key);
-        const oName = oCard.name || oCard.nombre || 'Enemigo';
+        const hasOpponentCard = oIdx !== null && oIdx !== undefined && b.opponentHand[oIdx];
+        const oCard = hasOpponentCard ? b.opponentHand[oIdx] : null;
+        const oVal = hasOpponentCard ? getCardStatValue(oCard, stat.key) : 0;
+        const oName = hasOpponentCard ? (oCard.name || oCard.nombre || 'Enemigo') : 'sin rival asignado';
 
         if (pIdx === null || pIdx === undefined) {
-            logs.push(`🔴 <strong>${stat.name}:</strong> Sin carta asignada (0) perdió ante ${oName} (${oVal}).`);
+            if (hasOpponentCard) {
+                logs.push(`🔴 <strong>${stat.name}:</strong> Sin carta asignada (0) perdió ante ${oName} (${oVal}).`);
+            } else {
+                logs.push(`⚪ <strong>${stat.name}:</strong> Sin cartas asignadas por ningún equipo.`);
+            }
         } else {
             const pCard = b.playerHand[pIdx];
             const pVal = getCardStatValue(pCard, stat.key);
             const pName = pCard.name || pCard.nombre || 'Tu personaje';
 
-            if (pVal > oVal) {
+            if (!hasOpponentCard) {
+                logs.push(`🟢 <strong>${stat.name}:</strong> ${pName} (${pVal}) no encontró rival asignado y conserva la carta.`);
+            } else if (pVal > oVal) {
                 const remaining = pVal - oVal;
                 logs.push(`🟢 <strong>${stat.name}:</strong> ${pName} (${pVal}) venció a ${oName} (${oVal}). Su atributo queda en ${remaining}.`);
                 oEliminatedIndices.add(oIdx);
@@ -1340,7 +1347,7 @@ function renderCentralBattleControl() {
         </div>
         
         <button onclick="executeBattleRound()" ${!isReadyToBattle || b.isLocked || b.playerHand.length === 0 || b.opponentHand.length === 0 ? 'disabled' : ''} 
-                class="bg-gradient-to-r from-red-600 via-green-600 to-indigo-600 hover:from-red-500 hover:to-indigo-500 disabled:from-gray-800 disabled:to-gray-800 disabled:text-gray-500 disabled:border-gray-700 border border-indigo-400 text-white font-extrabold text-xs sm:text-base md:text-lg py-2 md:py-2.5 px-3 sm:px-6 md:px-8 rounded-full shadow-xl transition-all transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed flex items-center gap-1 md:gap-2 shrink-0">
+                class="metal-btn bg-gradient-to-r from-red-600 via-green-600 to-indigo-600 hover:from-red-500 hover:to-indigo-500 disabled:from-gray-800 disabled:to-gray-800 disabled:text-gray-500 disabled:border-gray-700 border border-indigo-400 text-white font-extrabold text-xs sm:text-base md:text-lg py-2 md:py-2.5 px-3 sm:px-6 md:px-8 rounded-full shadow-xl transition-all transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed flex items-center gap-1 md:gap-2 shrink-0">
             <span>⚔️</span> INICIAR BATALLA
         </button>
 
@@ -1385,9 +1392,9 @@ const isMagSelected = selections.MAG === cardIdx;
 
 const getBtnClass = (isSelected, baseBg, activeBg, activeBorder) => {
     if (isSelected) {
-        return `${activeBg} text-white ${activeBorder} border-2 scale-105 shadow-lg font-black animate-pulse`;
+        return `stat-metal-button is-selected ${activeBg} text-white ${activeBorder} border-2 scale-105 shadow-lg font-black animate-pulse`;
     }
-    return `${baseBg} hover:border-gray-400 text-gray-200 border border-transparent`;
+    return `stat-metal-button ${baseBg} hover:border-gray-300 text-gray-200 border border-transparent`;
 };
 
 return `
