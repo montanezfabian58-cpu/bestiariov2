@@ -1,5 +1,5 @@
 window.tailwind = window.tailwind || {};
-tailwind.config = {
+window.tailwind.config = {
     darkMode: 'class',
     theme: {
         extend: {
@@ -34,6 +34,20 @@ const ATTRS = [
     { key: 'SPD', name: 'Velocidad', color: 'yellow' },
     { key: 'MAG', name: 'Magia', color: 'green' }
 ];
+
+
+function addDomEvent(elementId, eventName, handler) {
+    const bind = () => {
+        const element = document.getElementById(elementId);
+        if (element) element.addEventListener(eventName, handler);
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bind, { once: true });
+    } else {
+        bind();
+    }
+}
 
 const MILESTONE_CATEGORIES = [
     {
@@ -122,19 +136,51 @@ function hydrateCharacterTypeSelect() {
 }
 
 async function loadInitialState() {
+    const bundledState = await loadBundledCharactersState();
+    const savedState = readSavedState();
+
+    if (!savedState) return bundledState;
+
+    const savedHasCharacters = Array.isArray(savedState.characters) && savedState.characters.length > 0;
+    const bundledHasCharacters = Array.isArray(bundledState.characters) && bundledState.characters.length > 0;
+
+    return {
+        ...bundledState,
+        ...savedState,
+        characters: savedHasCharacters || !bundledHasCharacters ? (savedState.characters || []) : bundledState.characters,
+        rotationPool: Array.isArray(savedState.rotationPool) ? savedState.rotationPool : bundledState.rotationPool,
+        relationships: savedState.relationships || bundledState.relationships || {},
+        decks: Array.isArray(savedState.decks) ? savedState.decks : bundledState.decks
+    };
+}
+
+function readSavedState() {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (saved) {
-        try { return JSON.parse(saved); } catch (error) { console.warn('No se pudo leer el progreso local.', error); }
-    }
+    if (!saved) return null;
+
     try {
-        const response = await fetch('personajes.json', { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+        return JSON.parse(saved);
+    } catch (error) {
+        console.warn('No se pudo leer el progreso local.', error);
+        return null;
+    }
+}
+
+async function loadBundledCharactersState() {
+    try {
+        const data = await fetchJsonAsset('personajes.json');
         return importCharactersPayload(data);
     } catch (error) {
         console.warn('No se pudo cargar personajes.json; se iniciará una base vacía.', error);
-        return { characters: [], rotationPool: [], relationships: {} };
+        return { characters: [], rotationPool: [], relationships: {}, decks: [] };
     }
+}
+
+async function fetchJsonAsset(filename) {
+    const url = new URL(filename, document.baseURI);
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`${filename}: HTTP ${response.status}`);
+    return response.json();
 }
 
 function normalizeState() {
@@ -271,14 +317,15 @@ function switchSubTab(tab) {
 }
 
 async function loadMazos() {
+    const savedDecks = Array.isArray(state.decks) ? state.decks : [];
+
     try {
-        const response = await fetch('mazos.json', { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        state.decks = Array.isArray(data) ? data : (data.mazos || data.decks || []);
+        const data = await fetchJsonAsset('mazos.json');
+        const bundledDecks = Array.isArray(data) ? data : (data.mazos || data.decks || []);
+        state.decks = savedDecks.length > 0 ? savedDecks : bundledDecks;
     } catch (error) {
         console.warn('No se pudo cargar mazos.json o no existe aún.', error);
-        state.decks = state.decks || [];
+        state.decks = savedDecks;
     }
 }
 
@@ -1363,7 +1410,7 @@ return `
 `;
     }).join('');
 }
-document.getElementById('create-char-form').addEventListener('submit', (e) => {
+addDomEvent('create-char-form', 'submit', (e) => {
     e.preventDefault();
     const editId = document.getElementById('char-edit-id').value;
     const characterData = {
@@ -1878,7 +1925,7 @@ function syncEquipmentFormByType() {
     if (item.mode && document.getElementById('eq-mode')) document.getElementById('eq-mode').value = item.mode;
 }
 
-document.getElementById('equipment-form').addEventListener('submit', (e) => {
+addDomEvent('equipment-form', 'submit', (e) => {
     e.preventDefault();
     const char = state.characters.find(c => c.id === currentInventoryCharId);
     if (!char) return;
@@ -2000,7 +2047,7 @@ function syncMentalFormByType() {
     if (item.minusAttr && document.getElementById('mental-minus')) document.getElementById('mental-minus').value = item.minusAttr;
 }
 
-document.getElementById('mental-form').addEventListener('submit', (e) => {
+addDomEvent('mental-form', 'submit', (e) => {
     e.preventDefault();
     const char = state.characters.find(c => c.id === currentMentalCharId);
     if (!char) return;
@@ -2149,7 +2196,7 @@ function renderWorldSummary(char) {
     }).join('');
 }
 
-document.getElementById('world-form').addEventListener('submit', (e) => {
+addDomEvent('world-form', 'submit', (e) => {
     e.preventDefault();
     const char = state.characters.find(c => c.id === currentWorldCharId);
     if (!char) return;
@@ -2236,7 +2283,7 @@ function syncDestinyFormByType() {
     if (item.oathPath && document.getElementById('destiny-oath-path')) document.getElementById('destiny-oath-path').value = item.oathPath;
 }
 
-document.getElementById('destiny-form').addEventListener('submit', (e) => {
+addDomEvent('destiny-form', 'submit', (e) => {
     e.preventDefault();
     const char = state.characters.find(c => c.id === currentDestinyCharId);
     if (!char) return;
