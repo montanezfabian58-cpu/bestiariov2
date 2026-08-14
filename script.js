@@ -1656,7 +1656,12 @@ async function guardarTarjetaArmadura() {
     const efectos = Array.from(document.getElementById("lista-efectos-armadura").children).map(div => {
         const select = div.querySelector('.efecto-atributo');
         const atributo = select.disabled ? "defensa" : select.value;
-        let modificacion = parseInt(div.querySelector('.efecto-valor').value) || 0;
+        const valorEfecto = div.querySelector('.efecto-valor').value.trim();
+        let modificacion = parseInt(valorEfecto) || 0;
+        
+        if (atributo !== "defensa" && valorEfecto === "") {
+            return null;
+        }
         
         if (atributo !== "defensa" && modificacion > 0) {
             modificacion = -modificacion;
@@ -1666,7 +1671,13 @@ async function guardarTarjetaArmadura() {
             atributo: atributo,
             modificacion: modificacion
         };
-    });
+    }).filter(efecto => efecto !== null);
+    
+    const tieneEfectosSecundariosInvalidos = efectos.some(efecto => efecto.atributo !== "defensa" && efecto.modificacion >= 0);
+    if (tieneEfectosSecundariosInvalidos) {
+        alert("Los efectos secundarios deben ser negativos.");
+        return;
+    }
     
     const excepciones = Array.from(document.getElementById("lista-excepciones-armadura").children).map(div => ({
         tipo: div.querySelector('.exc-tipo').value,
@@ -2183,7 +2194,12 @@ async function guardarTarjetaMontura() {
     const efectos = Array.from(document.getElementById("lista-efectos-montura").children).map(div => {
         const select = div.querySelector('.efecto-atributo');
         const atributo = select.disabled ? "velocidad" : select.value;
-        let modificacion = parseInt(div.querySelector('.efecto-valor').value) || 0;
+        const valorEfecto = div.querySelector('.efecto-valor').value.trim();
+        let modificacion = parseInt(valorEfecto) || 0;
+        
+        if (atributo !== "velocidad" && valorEfecto === "") {
+            return null;
+        }
         
         if (atributo !== "velocidad" && modificacion > 0) {
             modificacion = -modificacion;
@@ -2193,7 +2209,13 @@ async function guardarTarjetaMontura() {
             atributo: atributo,
             modificacion: modificacion
         };
-    });
+    }).filter(efecto => efecto !== null);
+    
+    const tieneEfectosSecundariosInvalidos = efectos.some(efecto => efecto.atributo !== "velocidad" && efecto.modificacion >= 0);
+    if (tieneEfectosSecundariosInvalidos) {
+        alert("Los efectos secundarios deben ser negativos.");
+        return;
+    }
     
     const excepciones = Array.from(document.getElementById("lista-excepciones-montura").children).map(div => ({
         tipo: div.querySelector('.exc-tipo').value,
