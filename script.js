@@ -527,10 +527,13 @@ function iniciarRondaBatalla() {
     
     repartirCartas();
 }
+const TIPOS_EQUIPAMIENTO_PERMANENTE = ["Arma", "Armadura", "Reliquia", "Montura"];
+const TIPOS_EFECTOS_NO_EQUIPAMIENTO = ["Bendición", "Maldición", "Conocimiento", "Bendicion", "Maldicion"];
+const TIPOS_MODIFICADORES_PERMANENTES = [...TIPOS_EQUIPAMIENTO_PERMANENTE, ...TIPOS_EFECTOS_NO_EQUIPAMIENTO];
+
 function aplicarEquipamientoInicial(personaje) {
     if (typeof tarjetasGuardadas === 'undefined' || !tarjetasGuardadas) return;
-    const equipTipos = ["Arma", "Armadura", "Reliquia", "Montura", "Bendición", "Maldición", "Conocimiento", "Bendicion", "Maldicion"];
-    const tarjetasEquip = tarjetasGuardadas.filter(t => t.propietarioId === personaje.id && equipTipos.includes(t.tipo));
+    const tarjetasEquip = tarjetasGuardadas.filter(t => t.propietarioId === personaje.id && TIPOS_MODIFICADORES_PERMANENTES.includes(t.tipo));
     tarjetasEquip.forEach(tarjeta => {
         if (tarjeta.efectos && tarjeta.efectos.length > 0) {
             tarjeta.efectos.forEach(efecto => {
@@ -769,6 +772,43 @@ function asignarRivalAleatorio() {
             asignacionesRival[attr] = indicesDisponibles[i % indicesDisponibles.length];
         });
     }
+
+function calcularModificadorEquipamiento(tarjeta, personaje, oponente, attr, totalActual = 0) {
+    if (!tarjeta || !TIPOS_EQUIPAMIENTO_PERMANENTE.includes(tarjeta.tipo) || tarjeta.propietarioId !== personaje.id) {
+        return 0;
+    }
+
+    const efecto = tarjeta.efectos?.find(e => e.atributo && e.atributo.toLowerCase() === attr.toLowerCase());
+    if (!efecto || !oponente || !tarjeta.excepciones || tarjeta.excepciones.length === 0) {
+        return 0;
+    }
+
+    return tarjeta.excepciones.reduce((modificador, exc) => {
+        const aplicaPorPersonaje = exc.personajeId && exc.personajeId === oponente.id;
+        const aplicaPorTipo = !exc.personajeId && exc.tipo && (oponente.tipo || "").includes(exc.tipo);
+        if (!aplicaPorPersonaje && !aplicaPorTipo) {
+            return modificador;
+        }
+
+        const porcentaje = (parseInt(exc.porcentaje) || 50) / 100;
+        const valorEfecto = Math.abs(parseInt(efecto.modificacion) || 0);
+
+        if (exc.condicion === "Aumento") {
+            return modificador + (valorEfecto * porcentaje);
+        }
+        if (exc.condicion === "Debilidad") {
+            return modificador - (valorEfecto * porcentaje);
+        }
+        if (exc.condicion === "Inmune") {
+            return modificador + 999;
+        }
+        if (exc.condicion === "Destino") {
+            return modificador + totalActual;
+        }
+        return modificador;
+    }, 0);
+}
+
 function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
     let total = valBase;
     if (typeof tarjetasGuardadas === 'undefined') return total;
@@ -798,9 +838,8 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             }
         }
     });
-    const equipTipos = ["Arma", "Armadura", "Reliquia", "Montura", "Bendición", "Maldición", "Conocimiento", "Bendicion", "Maldicion"];
     const tarjetas = tarjetasGuardadas.filter(t => {
-        if (t.tipo === "Territorio" || t.tipo === "Campo De Fuerza" || equipTipos.includes(t.tipo)) return false;
+        if (t.tipo === "Territorio" || t.tipo === "Campo De Fuerza" || TIPOS_EFECTOS_NO_EQUIPAMIENTO.includes(t.tipo)) return false;
         if (t.propietarioId === personaje.id) return true;
         if (["Aliado", "Rival", "Grupo", "Pareja", "Amor", "Odio"].includes(t.tipo) && t.vinculadosIds && t.vinculadosIds.includes(personaje.id)) {
             const tieneTarjetaPropia = tarjetasGuardadas.some(tp => tp.propietarioId === personaje.id && tp.tipo === t.tipo && tp.vinculadosIds && tp.vinculadosIds.includes(t.propietarioId));
@@ -810,10 +849,12 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
     });
 
     tarjetas.forEach(tarjeta => {
-        if (tarjeta.efectos && !["Aliado", "Rival", "Grupo", "Pareja", "Amor", "Odio"].includes(tarjeta.tipo)) {
+        if (TIPOS_EQUIPAMIENTO_PERMANENTE.includes(tarjeta.tipo)) {
+            total += calcularModificadorEquipamiento(tarjeta, personaje, oponente, attr, total);
+        } else if (tarjeta.efectos && !["Aliado", "Rival", "Grupo", "Pareja", "Amor", "Odio"].includes(tarjeta.tipo)) {
             const efecto = tarjeta.efectos.find(e => e.atributo && e.atributo.toLowerCase() === attr.toLowerCase());
             if (efecto) {
-                total += efecto.modificacion;
+                total += parseInt(efecto.modificacion) || 0;
             }
         }
 
@@ -946,7 +987,7 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
                     }
                 }
             });
-        } else if (tarjeta.excepciones && tarjeta.excepciones.length > 0 && oponente) {
+        } else if (!TIPOS_EQUIPAMIENTO_PERMANENTE.includes(tarjeta.tipo) && tarjeta.excepciones && tarjeta.excepciones.length > 0 && oponente) {
             tarjeta.excepciones.forEach(exc => {
                 let aplica = false;
                 if (exc.personajeId && exc.personajeId === oponente.id) {
