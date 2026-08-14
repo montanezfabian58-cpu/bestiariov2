@@ -1,459 +1,546 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG Card Battler</title>
-    <script>
-        window.tailwind = {
-            config: {
-                darkMode: 'class',
-                theme: {
-                    extend: {
-                        colors: {
-                            dark: '#121212',
-                            darker: '#0a0a0a',
-                            card: '#1e1e1e',
-                            primary: '#6366f1',
-                            danger: '#ef4444',
-                            success: '#10b981'
-                        },
-                        fontFamily: {
-                            sans: ['Inter', 'sans-serif'],
-                        }
-                    }
-                }
-            }
-        };
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <link rel="stylesheet" href="styles.css">
-    <script src="script.js" defer></script>
-
+    <title>Bestiario</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-darker min-h-screen text-gray-200">
-
-    <nav class="bg-card border-b border-gray-800 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex-shrink-0 flex items-center gap-2">
-                    <span class="text-2xl">⚔️</span>
-                    <span class="font-bold text-xl tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-primary to-green-500">BESTIARIO V2</span>
-                </div>
-                <div class="flex space-x-4">
-                    <button id="nav-management" class="text-white bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium transition" onclick="switchTab('management')">Gestión de Personajes</button>
-                    <button id="nav-battle" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium transition" onclick="switchTab('battle')">Zona de Batalla</button>
-                    <button onclick="downloadCharactersJson()" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-lg transition flex items-center justify-center" title="Guardar Progreso">💾</button>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <main id="section-management" class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div>
-                <h1 class="text-3xl font-bold text-white">Mazo de Personajes</h1>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-3">
-                <button id="btn-toggle-create" onclick="toggleCreateForm()" class="bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-5 rounded-lg transition shadow-lg shadow-indigo-500/30">+ Nuevo personaje</button>
-                <button id="btn-toggle-deck" onclick="openDeckModal()" class="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-5 rounded-lg transition shadow-lg shadow-green-500/30">+ Nuevo mazo</button>
-            </div>
-        </div>
-
-        <!-- Create Character Form -->
-        <div id="create-char-panel" class="hidden bg-card rounded-xl p-6 shadow-lg border border-gray-800 mb-10">
-            <div class="flex items-center justify-between gap-4 mb-4 border-b border-gray-700 pb-2">
-                <h2 id="create-char-title" class="text-xl font-bold">Reclutar Nuevo Personaje</h2>
-                <button onclick="toggleCreateForm(false)" class="text-gray-400 hover:text-white text-sm">Ocultar</button>
-            </div>
-            <form id="create-char-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <input type="hidden" id="char-edit-id">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Nombre</label>
-                        <input type="text" id="char-name" required class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Tipo de personaje</label>
-                        <select id="char-type" required class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
-                            <option value="">Selecciona un tipo...</option>
-                        </select>
-                    </div>
-                    <div class="rounded-lg border border-gray-800 bg-dark/60 p-3 text-xs text-gray-400">
-                        La imagen se genera automáticamente desde el nombre. Ejemplo: <span class="text-gray-200">Fabián → personajes/fabian.jpg</span>.
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Historia</label>
-                        <textarea id="char-story" required rows="3" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary"></textarea>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Atributos Base (1 - 100)</label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs text-blue-400 mb-1">Inteligencia</label>
-                            <input type="number" id="char-int" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-red-400 mb-1">Fuerza</label>
-                            <input type="number" id="char-str" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-red-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-yellow-400 mb-1">Velocidad</label>
-                            <input type="number" id="char-spd" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-yellow-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-green-400 mb-1">Magia</label>
-                            <input type="number" id="char-mag" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-green-500">
-                        </div>
-                    </div>
-                    <button id="create-char-submit" type="submit" class="mt-6 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg shadow-indigo-500/30">Crear Personaje</button>
-                    <button id="create-char-cancel" type="button" onclick="resetCharacterForm()" class="hidden mt-3 w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition">Cancelar edición</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Gallery -->
-        <div>
-            <div class="flex items-center gap-6 border-b border-gray-800 pb-3 mb-6">
-                <button id="tab-btn-characters" onclick="switchSubTab('characters')" class="text-2xl font-bold border-b-2 border-primary text-white pb-1 focus:outline-none flex items-center gap-2">
-                    Personajes <span id="char-count" class="text-sm font-normal text-gray-400 bg-gray-800 py-1 px-2 rounded">0</span>
-                </button>
-                <button id="tab-btn-decks" onclick="switchSubTab('decks')" class="text-2xl font-bold border-b-2 border-transparent text-gray-400 hover:text-white pb-1 focus:outline-none flex items-center gap-2">
-                    Mazos <span id="deck-count" class="text-sm font-normal text-gray-400 bg-gray-800 py-1 px-2 rounded">0</span>
-                </button>
-            </div>
-
-            <!-- Subpestaña Personajes -->
-            <div id="subtab-characters">
-                <div id="char-gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7">
-                    <!-- Dynamically populated -->
-                </div>
-            </div>
-
-            <!-- Subpestaña Mazos -->
-            <div id="subtab-decks" class="hidden">
-                <div id="decks-gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7">
-                    <!-- Dynamically populated -->
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <main id="section-battle" class="hidden max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <!-- Selección de mazo -->
-        <div id="battle-deck-selection" class="flex flex-col items-center justify-center min-h-[50vh] text-center bg-card p-8 rounded-xl border border-gray-800 shadow-xl max-w-xl mx-auto">
-            <h2 class="text-3xl font-bold text-white mb-4">Zona de Batalla</h2>
-            <p class="text-gray-400 mb-6">Selecciona uno de tus mazos guardados para comenzar la batalla.</p>
-            
-            <div class="w-full mb-6 text-left">
-                <label for="battle-deck-select" class="block text-sm font-medium text-gray-400 mb-2">Elige tu mazo:</label>
-                <select id="battle-deck-select" onchange="onBattleDeckSelect()" class="w-full bg-dark border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-primary">
-                    <option value="">-- Selecciona un mazo --</option>
-                </select>
-            </div>
-
-            <div id="reward-selection-container" class="w-full mb-6 text-left hidden">
-                <label class="block text-sm font-medium text-yellow-400 mb-2">Elige 3 cartas para recibir recompensas tras la batalla:</label>
-                <div id="reward-cards-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-dark rounded-lg border border-gray-700">
-                    <!-- Checkboxes de cartas dinámicos -->
-                </div>
-                <p id="reward-selection-warning" class="text-xs text-red-400 mt-2 hidden">Debes seleccionar exactamente 3 cartas para continuar.</p>
-            </div>
-
-            <button id="btn-start-combat" onclick="startCombat()" disabled class="w-full bg-primary hover:bg-indigo-600 disabled:bg-gray-800 disabled:text-gray-500 disabled:opacity-50 text-white font-bold py-3 px-6 rounded-lg transition shadow-lg shadow-indigo-500/30 disabled:cursor-not-allowed">
-                EMPEZAR COMBATE
+<body>
+    <div class="encabezado">
+        <h1>Bestiario</h1>
+        <div class="pestanas">
+            <button data-ventana="galeria">
+                Galería
+            </button>
+            <button data-ventana="mazo">
+                Mazo
+            </button>
+            <button data-ventana="batalla">
+                Batalla
             </button>
         </div>
-
-    
-        <!-- Ventana de combate -->
-        <div id="battle-arena-view" class="hidden fixed inset-0 z-[100] bg-darker p-2 md:p-4 flex flex-row gap-2 w-screen h-screen overflow-hidden">
-            <!-- Botón Cerrar -->
-            <button onclick="closeBattleArena()" class="absolute top-4 right-4 z-[110] text-gray-400 hover:text-white bg-gray-900 hover:bg-gray-800 rounded-full w-8 h-8 flex items-center justify-center border border-gray-700 transition" title="Cerrar Combate">✕</button>
-            
-            <!-- Columna A (75% Ancho) -->
-            <div class="w-[80%] h-full flex flex-col gap-2">
-                <!-- A1: Mano del Oponente (40% Alto) -->
-                <div class="h-[47.5%] w-full bg-card p-2 md:p-3 rounded-xl border shadow-xl flex flex-col overflow-hidden">
-                    <h3 class="text-[10px] md:text-[8px] font-bold text-red-400 mb-1 md:mb-2 uppercase tracking-widest flex items-center gap-1 md:gap-2 shrink-0">
-                        <span>⚔️</span> Mano del Oponente
-                    </h3>
-                    <div id="opponent-cards-container" class="grid grid-cols-5 gap-1 md:gap-2 flex-grow min-h-0 h-full"></div>
-                </div>
-
-                <!-- A2: Botón de Iniciar Batalla y 4 Atributos (20% Alto) -->
-                <div id="battle-action-center" class="h-[5%] w-full bg-card p-2 rounded-xl border border-gray-900 shadow-xl flex items-center justify-around md:justify-center gap-2 md:gap-6 overflow-hidden"></div>
-
-                <!-- A3: Mi Mano (40% Alto) -->
-                <div class="h-[47.5%] w-full bg-card p-2 md:p-3 rounded-xl border shadow-xl flex flex-col overflow-hidden">
-                    <h3 class="text-[1px] md:text-[8px] font-bold text-indigo-400 mb-1 md:mb-2 uppercase tracking-widest flex items-center gap-1 md:gap-2 shrink-0">
-                        <span>🎴</span> Tu Mano
-                    </h3>
-                    <div id="player-cards-container" class="grid grid-cols-5 gap-1 md:gap-2 flex-grow min-h-0 h-full"></div>
-                </div>
+    </div>
+    <div class="contenidos">
+        <section id="galeria">
+            <h2>Galería</h2>
+            <div class="subpestanas">
+                <button id="btn-sub-personajes" class="activo" onclick="cambiarSubpestana('personajes')">Personajes</button>
+                <button id="btn-sub-tarjetas" onclick="cambiarSubpestana('tarjetas')">Tarjetas</button>
             </div>
-
-            <!-- Columna B (25% Ancho) -->
-            <div class="w-[25%] h-full flex flex-col gap-2 shrink-0">
-                <!-- B1: Info Oponente (30% Alto) -->
-                <div class="h-[15%] w-full bg-card p-2 md:p-3 rounded-xl border border-gray-800 shadow-xl flex flex-col overflow-hidden">
-                    <h3 class="text-[10px] md:text-xs font-bold text-red-400 mb-1 md:mb-2 uppercase tracking-widest flex items-center gap-1">
-                        <span>🛡️</span> Info Oponente
-                    </h3>
-                    <div class="text-[10px] md:text-xs text-gray-300 space-y-1">
-                        <p class="font-bold text-white text-[10px] md:text-sm truncate" id="opponent-deck-name">Mazo Enemigo</p>
-                        <p class="text-gray-400">Cartas: <span id="opponent-deck-count" class="text-white font-bold">0</span></p>
-                    </div>
+            <div id="sub-personajes" class="sub-contenido activo">
+            </div>
+            <div id="sub-tarjetas" class="sub-contenido" style="display: none;">
+                <div id="grid-tarjetas-galeria" class="galeria-grid"></div>
+            </div>
+        </section>
+       <section id="mazo">
+            <h2>Mazo</h2>
+            <button id="btn-nuevo-mazo">Nuevo mazo</button>
+            <div id="lista-mazos">
+            </div>
+        </section>
+        <section id="batalla">
+            <h2>Batalla</h2>
+            <div id="pantalla-seleccion-mazo">
+                <h3>Selecciona un Mazo para la Batalla</h3>
+                <div id="lista-mazos-batalla" class="lista-mazos-grid"></div>
+            </div>
+            <div id="pantalla-seleccion-personajes" style="display: none;">
+                <h3>Selecciona 3 Personajes Principales (<span id="contador-principales">0</span>/3)</h3>
+                <div class="acciones-batalla">
+                    <button id="btn-aleatorio-batalla">Elegir Aleatoriamente</button>
+                    <button id="btn-confirmar-principales" disabled>Confirmar Selección</button>
+                    <button id="btn-volver-mazos">Cambiar Mazo</button>
                 </div>
-
-                <!-- B2: Resultados (40% Alto) -->
-                <div id="battle-results-center" class="h-[60%] w-full bg-card p-2 md:p-3 rounded-xl border border-gray-800 shadow-xl flex flex-col overflow-hidden shrink-0"></div>
-
-                <!-- B3: Mi Info (30% Alto) -->
-                <div class="h-[15%] w-full bg-card p-2 md:p-3 rounded-xl border border-gray-800 shadow-xl flex flex-col overflow-hidden">
-                    <h3 class="text-[10px] md:text-xs font-bold text-indigo-400 mb-1 md:mb-2 uppercase tracking-widest flex items-center gap-1">
-                        <span>👤</span> Tu Info
-                    </h3>
-                    <div class="text-[10px] md:text-xs text-gray-300 space-y-1">
-                        <p class="font-bold text-white text-[10px] md:text-sm truncate" id="player-deck-name">Tu Mazo</p>
-                        <p class="text-gray-400">Cartas: <span id="player-deck-count" class="text-white font-bold">0</span></p>
-                    </div>
-                </div>
+                <div id="grid-personajes-batalla" class="galeria-grid"></div>
             </div>
-        </div>
-    </main>
-    <!-- View Deck Modal -->
-    <div id="view-deck-modal" class="hidden fixed inset-0 z-[75] flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-card w-full max-w-4xl rounded-xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900">
-                <h3 id="view-deck-title" class="text-xl font-bold text-white">Personajes del Mazo</h3>
-                <button onclick="document.getElementById('view-deck-modal').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
+            <div id="pantalla-batalla-activa" style="display: none;">
+                <h3>Personajes Principales Seleccionados</h3>
+                <div id="contenedor-principales-seleccionados" class="galeria-grid"></div>
             </div>
-            <div id="view-deck-chars-container" class="flex-1 overflow-y-auto p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                <!-- Generado dinámicamente -->
-            </div>
+        </section>
+    </div>
+    <div id="modal-personaje" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar-modal">&times;</span>
+            <div id="detalle-personaje"></div>
         </div>
     </div>
-    <div id="deck-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-card w-full h-[95vh] max-w-[95vw] rounded-xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900">
-                <h3 class="text-xl font-bold">Nuevo Mazo</h3>
-                <button onclick="document.getElementById('deck-modal').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
-            </div>
-            <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
-                <!-- Parte Izquierda -->
-                <div class="w-full md:w-1/2 h-full p-6 border-r border-gray-800 overflow-y-auto bg-gray-900/40">
-                    <h4 class="text-lg font-bold mb-4 text-gray-300">Personajes Disponibles</h4>
-                    <div id="deck-available-chars" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-                        <!-- Generado dinámicamente -->
-                    </div>
+    <div id="modal-nuevo-mazo" class="modal">
+        <div class="modal-contenido-mazo">
+            <span class="cerrar-modal-mazo">&times;</span>
+            <h2>Constructor de Mazo</h2>
+            <div class="constructor-mazo-contenedor">
+                <div class="panel-izquierdo">
+                    <h3>Personajes Disponibles</h3>
+                    <div id="personajes-disponibles" class="galeria-grid"></div>
                 </div>
-                <!-- Parte Derecha -->
-                <div class="w-full md:w-1/2 h-full p-6 overflow-y-auto bg-gray-950/80">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                        <div class="flex items-center gap-2">
-                            <h4 class="text-lg font-bold text-gray-300">Tu Mazo</h4>
-                            <span id="deck-counter-badge" class="text-xs font-bold bg-gray-800 text-gray-400 px-3 py-1 rounded-full border border-gray-700">0 / 50</span>
-                        </div>
-                        <button id="btn-save-deck" onclick="saveNewDeck()" disabled class="bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:opacity-50 text-white font-bold px-4 py-1.5 rounded-lg text-sm transition disabled:cursor-not-allowed">Guardar mazo</button>
-                    </div>
-                    <div class="mb-4">
-                        <input type="text" id="deck-name-input" placeholder="Nombre del mazo..." class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-green-500">
-                    </div>
-                    <div id="deck-slots" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-                        <!-- Generado dinámicamente -->
-                    </div>
+                <div class="panel-derecho">
+                    <h3>Mazo Actual (<span id="contador-mazo">0</span>/50)</h3>
+                    <div id="personajes-mazo" class="galeria-grid mazo-grid"></div>
+                    <button id="btn-guardar-mazo">Guardar mazo</button>
                 </div>
             </div>
         </div>
     </div>
-    <!-- Character Detail / Action Modal -->
-    <div id="char-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-card w-full max-w-3xl rounded-xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900">
-                <h3 id="modal-name" class="text-xl font-bold"></h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-white">&times;</button>
-            </div>
-            <div class="flex-1 overflow-y-auto p-6">
-                <div class="flex flex-col md:flex-row gap-6">
-                    <div class="w-full md:w-1/3">
-                        <img id="modal-img" src="" alt="Avatar" class="w-full h-64 object-cover rounded-lg border border-gray-700 shadow-md">
-                        <div class="mt-4 bg-gray-800 rounded p-3 text-center">
-                            <span class="block text-xs text-gray-400 uppercase">Nivel</span>
-                            <span id="modal-level" class="text-2xl font-bold text-primary"></span>
-                        </div>
-                        <div id="modal-profile-actions" class="char-card__actions mt-4" aria-label="Acciones del personaje">
-                            <!-- Injected profile action buttons -->
-                        </div>
-                        <div id="modal-milestone-buttons" class="mt-4 grid grid-cols-2 gap-2">
-                            <!-- Injected milestone access buttons -->
-                        </div>
-                        <div class="mt-4 bg-gray-900/70 rounded-lg border border-gray-700 p-4">
-                            <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-white mb-3">Atributos principales</h4>
-                            <div id="modal-stats" class="grid grid-cols-1 gap-3">
-                                <!-- Injected stats -->
-                            </div>
-                        </div>
-                    </div>
-                    <div class="w-full md:w-2/3 space-y-4">
-                        <div class="bg-dark rounded-lg border border-gray-700 p-4 shadow-inner">
-                            <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Lore redactado a mano</h4>
-                            <div class="text-sm text-gray-200 leading-relaxed italic whitespace-pre-line" id="modal-story"></div>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-gray-800/50 p-2 rounded text-center border border-gray-700">
-                                <span class="text-xs text-gray-400">Batallas</span><br>
-                                <span id="modal-battles" class="font-bold"></span>
-                            </div>
-                            <div class="bg-gray-800/50 p-2 rounded text-center border border-gray-700">
-                                <span class="text-xs text-gray-400">Puntos Pendientes (Pos/Neg)</span><br>
-                                <span class="font-bold text-success" id="modal-pos"></span> / <span class="font-bold text-danger" id="modal-neg"></span>
-                            </div>
-                        </div>
+    <script src="script.js"></script>
+    <div id="modal-evolucion" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar-modal" onclick="cerrarModalEvolucion()">&times;</span>
+            <div id="contenido-evolucion"></div>
+        </div>
+    </div>
+    <div id="modal-tarjeta-historia" class="modal">
+        <div class="modal-contenido modal-historia-tarjetas">
+            <span class="cerrar-modal" onclick="cerrarModalTarjetaHistoria()">&times;</span>
+            <h2>TARJETA DE MODIFICACIÓN DE HISTORIA</h2>
+            <div class="contenedor-grupos-tarjetas">
+                
+                <div class="grupo-tarjetas grupo-equipamiento">
+                    <h3>Equipamiento y Objetos</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioArma()">Arma</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioArmadura()">Armadura</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioReliquia()">Reliquia</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioMontura()">Montura</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioConsumible()">Consumible</button>                    </div>
+                </div>
 
-                        <!-- Action Areas (Points / Milestones) -->
-                        <div id="modal-action-area" class="hidden bg-indigo-950/30 border border-indigo-500/50 rounded-lg p-4 mt-4">
-                            <!-- Injected dynamically -->
-                        </div>
-
-
-                        <div class="bg-gray-900/70 rounded-lg border border-gray-700 p-4">
-                            <div class="flex items-center justify-between gap-3 mb-3">
-                                <div>
-                                    <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-white">Sociedades</h4>
-                                    <p class="text-xs text-gray-500 mt-1">Aliados, rivales y traiciones se revisan aquí.</p>
-                                </div>
-                                <button onclick="toggleSocieties()" class="bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold px-3 py-2 rounded-lg border border-gray-600 transition">Sociedades</button>
-                            </div>
-                            <div id="modal-societies" class="hidden space-y-3 text-sm">
-                                <!-- Relationship tags -->
-                            </div>
-                        </div>
+                <div class="grupo-tarjetas grupo-vinculos">
+                    <h3>Vínculos y Relaciones</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioVinculo('Aliado')">Aliado</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioVinculo('Rival')">Rival</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioVinculo('Pareja')">Pareja</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioVinculo('Grupo')">Grupo</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioVinculo('Amor')">Amor</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioVinculo('Odio')">Odio</button>
+                        <button class="btn-tarjeta-tipo">Plan</button>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Inventory / Equipment Modal -->
-    <div id="inventory-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-card w-full max-w-5xl rounded-xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col max-h-[92vh]">
-            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900">
-                <div>
-                    <h3 id="inventory-title" class="text-xl font-bold">⚔️ Inventario</h3>
-                    <p class="text-xs text-gray-400 mt-1">Equipamiento, reliquias, monturas y territorios con reglas personalizables.</p>
-                </div>
-                <button onclick="closeInventoryModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
-            </div>
-            <div class="flex-1 overflow-y-auto p-6 space-y-6">
-                <form id="equipment-form" class="bg-gray-900/70 border border-gray-700 rounded-xl p-4">
-                    <div class="flex items-center justify-between gap-3 mb-4">
-                        <div>
-                            <h4 class="font-bold text-white">Crear o editar posesión</h4>
-                            <p class="text-xs text-gray-500">El usuario define potencia, excepciones, afinidades y condicionales libremente.</p>
-                        </div>
-                        <button type="button" onclick="resetEquipmentForm()" class="bg-gray-800 hover:bg-gray-700 text-xs font-bold px-3 py-2 rounded-lg border border-gray-600">Limpiar</button>
+                <div class="grupo-tarjetas grupo-entorno">
+                    <h3>Entorno y Cobertura</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioTerritorio()">Territorio</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioCampoFuerza()">Campo De Fuerza</button>
                     </div>
-                    <input type="hidden" id="eq-id">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><label class="inventory-label">Tipo</label><select id="eq-type" class="inventory-input" onchange="syncEquipmentFormByType()"><option>Arma</option><option>Armadura</option><option>Artefacto / Reliquia</option><option>Montura</option><option>Territorio</option></select></div>
-                        <div><label class="inventory-label">Nombre</label><input id="eq-name" required placeholder="Ej: Espada del Alba" class="inventory-input"></div>
-                        <div><label class="inventory-label">Imagen</label><input id="eq-image" placeholder="URL de imagen opcional" class="inventory-input"></div>
+                </div>
+
+                <div class="grupo-tarjetas grupo-estado">
+                    <h3>Estado y Condición</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioMiedo()">Miedo</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioDebilidad()">Debilidad</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioInmunidad()">Inmunidad</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioMutacion()">Mutación</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioEnfermedad()">Enfermedad</button>
                     </div>
-                    <textarea id="eq-notes" rows="3" placeholder="Narrativa redactada por el usuario..." class="inventory-input mt-4"></textarea>
-                    <div id="eq-dynamic" class="space-y-4 mt-4"></div>
-                    <button class="mt-4 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-2 rounded-lg">Guardar posesión</button>
-                </form>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="equipment-list"></div>
-                <div class="bg-emerald-950/30 border border-emerald-700/50 rounded-xl p-4 text-sm text-emerald-100">
-                    <strong>Reglas inquebrantables:</strong> las Monturas/Vehículos solo aumentan Velocidad y su bono no puede anularse ni reducirse. El Refugio/Territorio limita cualquier reducción total de atributos del personaje a un máximo del 15%.
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Mental / Personal Development Modal -->
-    <div id="mental-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-card w-full max-w-5xl rounded-xl shadow-2xl border border-green-700/60 overflow-hidden flex flex-col max-h-[92vh]">
-            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900">
-                <div>
-                    <h3 id="mental-title" class="text-xl font-bold">🧠 Desarrollo</h3>
-                    <p class="text-xs text-gray-400 mt-1">Acontecimiento, Sabiduría, Miedo, Debilidad y Mutación como estados permanentes del personaje.</p>
+                <div class="grupo-tarjetas grupo-destino">
+                    <h3>Destino y Estrategia</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo">Misión</button>
+                        <button class="btn-tarjeta-tipo">Deuda</button>
+                    </div>
                 </div>
-                <button onclick="closeMentalModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
-            </div>
-            <div class="flex-1 overflow-y-auto p-6 space-y-6">
-                <form id="mental-form" class="bg-green-950/20 border border-green-700/50 rounded-xl p-4">
-                    <div class="flex items-center justify-between gap-3 mb-4"><div><h4 class="font-bold text-white">Crear o editar hito mental</h4><p class="text-xs text-gray-500">Configura redistribuciones, detonantes de miedo y agravantes de debilidad.</p></div><button type="button" onclick="resetMentalForm()" class="bg-gray-800 hover:bg-gray-700 text-xs font-bold px-3 py-2 rounded-lg border border-gray-600">Limpiar</button></div>
-                    <input type="hidden" id="mental-id">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div><label class="inventory-label">Tipo</label><select id="mental-type" class="mental-input" onchange="syncMentalFormByType()"><option>Acontecimiento</option><option>Sabiduría</option><option>Miedo</option><option>Debilidad</option><option>Mutación</option></select></div><div><label class="inventory-label">Nombre</label><input id="mental-name" required placeholder="Ej: Noche del Abismo" class="mental-input"></div><div><label class="inventory-label">Imagen</label><input id="mental-image" placeholder="URL de imagen opcional" class="mental-input"></div></div>
-                    <textarea id="mental-notes" rows="3" placeholder="Narrativa redactada por el usuario..." class="mental-input mt-4"></textarea>
-                    <div id="mental-dynamic" class="space-y-4 mt-4"></div>
-                    <button class="mt-4 w-full bg-green-700 hover:bg-green-600 text-white font-bold py-2 rounded-lg">Guardar hito mental</button>
-                </form>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="mental-list"></div>
-            </div>
-        </div>
-    </div>
 
-
-    <!-- World / Social Status Modal -->
-    <div id="world-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-card w-full max-w-5xl rounded-xl shadow-2xl border border-emerald-700/60 overflow-hidden flex flex-col max-h-[92vh]">
-            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900"><div><h3 id="world-title" class="text-xl font-bold">🌎 Mundo</h3><p class="text-xs text-gray-400 mt-1">Compañeros, clanes, apodos, misiones y deudas que modifican la batalla.</p></div><button onclick="closeWorldModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button></div>
-            <div class="flex-1 overflow-y-auto p-6 space-y-6">
-                <form id="world-form" class="bg-emerald-950/20 border border-emerald-700/50 rounded-xl p-4 space-y-4">
-                    <div class="flex items-center justify-between gap-3"><div><h4 class="font-bold text-white">Agregar un hito de mundo</h4><p class="text-xs text-gray-500">Cada envío consume 1 hito disponible; no puedes guardar varios hitos en una sola vez.</p></div><button type="button" onclick="resetWorldForm()" class="bg-gray-800 hover:bg-gray-700 text-xs font-bold px-3 py-2 rounded-lg border border-gray-600">Limpiar</button></div>
-                    <input type="hidden" id="world-id">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="inventory-label">Tipo de hito</label><select id="world-type" class="world-input" onchange="syncWorldFormByType()"><option>Compañero</option><option>Clan</option><option>Apodo</option><option>Misión Objetivo</option><option>Deuda</option></select></div><div><label class="inventory-label">Nombre / título</label><input id="world-name" required class="world-input" placeholder="Nombre del hito"></div></div>
-                    <textarea id="world-narrative" rows="3" required placeholder="Narrativa redactada por el usuario..." class="world-input"></textarea>
-                    <div id="world-dynamic" class="space-y-4"></div>
-                    <button class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 rounded-lg">Guardar 1 hito de mundo</button>
-                </form>
-                <div id="world-summary" class="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Destiny / Supernatural Modal -->
-    <div id="destiny-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-card w-full max-w-4xl rounded-xl shadow-2xl border border-sky-700/60 overflow-hidden flex flex-col max-h-[92vh]">
-            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900"><div><h3 id="destiny-title" class="text-xl font-bold">🔮 Destino</h3><p class="text-xs text-gray-400 mt-1">Maldiciones, bendiciones y juramentos fijan o alteran atributos.</p></div><button onclick="closeDestinyModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button></div>
-            <div class="flex-1 overflow-y-auto p-6 space-y-5">
-                <form id="destiny-form" class="space-y-4 bg-sky-950/20 border border-sky-700/50 rounded-xl p-4">
-                    <div class="flex items-center justify-between gap-3"><div><h4 class="font-bold text-white">Agregar un hito de destino</h4><p class="text-xs text-gray-500">Maldición, bendición o juramento se guardan de a uno y consumen 1 hito disponible.</p></div><button type="button" onclick="resetDestinyForm()" class="bg-gray-800 hover:bg-gray-700 text-xs font-bold px-3 py-2 rounded-lg border border-gray-600">Limpiar</button></div>
-                    <input type="hidden" id="destiny-id">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="inventory-label">Tipo</label><select id="destiny-type" class="destiny-input" onchange="syncDestinyFormByType()"><option>Maldición</option><option>Bendición</option><option>Juramento</option></select></div><div><label class="inventory-label">Nombre</label><input id="destiny-name" required class="destiny-input" placeholder="Nombre narrativo"></div></div>
-                    <textarea id="destiny-notes" rows="3" required placeholder="Narrativa..." class="destiny-input"></textarea>
-                    <div id="destiny-dynamic" class="space-y-4"></div>
-                    <button class="w-full bg-sky-700 hover:bg-sky-600 text-white font-bold py-2 rounded-lg">Guardar 1 hito de destino</button>
-                </form>
-                <div id="destiny-list" class="grid grid-cols-1 gap-4 text-sm"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Battle Rewards Modal -->
-    <div id="battle-rewards-modal" class="hidden fixed inset-0 z-[130] flex items-center justify-center p-4 modal-overlay battle-reward-overlay">
-        <div class="battle-reward-modal bg-card w-full max-w-5xl rounded-2xl shadow-2xl border border-indigo-500/60 overflow-hidden">
-            <div class="p-6 md:p-8 border-b border-gray-800 bg-gradient-to-r from-indigo-950/90 via-gray-900 to-emerald-950/80">
-                <p class="text-xs uppercase tracking-[0.35em] text-indigo-300 mb-2">Recompensas de batalla</p>
-                <h3 class="text-3xl md:text-4xl font-black text-white">Tus personajes consiguieron:</h3>
-            </div>
-            <div class="p-6 md:p-8">
-                <div id="battle-rewards-cards" class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <!-- Recompensas dinámicas -->
+                <div class="grupo-tarjetas grupo-esoterica">
+                    <h3>Esotéricas y de Poder</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo">Poder</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioMaldicion()">Maldición</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioBendicion()">Bendición</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioConocimiento()">Conocimiento</button>
+                    </div>
                 </div>
-                <div class="mt-8 flex justify-end">
-                    <button id="btn-save-battle-rewards" onclick="saveBattleRewardPoints()" class="battle-reward-save bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900 disabled:cursor-wait text-white font-black py-3 px-6 rounded-xl transition shadow-lg shadow-emerald-500/30">GUARDAR PUNTOS</button>
+
+            </div>
+        </div>
+    </div>
+    <div id="modal-recompensas" class="modal-recompensas" style="display: none;">
+        <div class="modal-recompensas-contenido">
+            <h2>Tus personajes han ganado:</h2>
+            <div id="contenedor-recompensas-personajes" class="recompensas-grid"></div>
+            <button id="btn-cerrar-recompensas">Guardar y Finalizar</button>
+        </div>
+    </div>
+
+    <div id="alerta-juego" class="modal-alerta" style="display: none;">
+        <div class="contenido-alerta">
+            <p id="texto-alerta"></p>
+            <button onclick="cerrarAlerta()">Aceptar</button>
+        </div>
+    </div>
+    <div id="modal-batalla" class="modal-batalla">
+        <div class="columna-a">
+            <div id="sector-a1" class="sector a1">A1</div>
+            <div id="sector-a2" class="sector a2">
+                <div id="casilleros-atributos">
+                    <div class="casillero" data-attr="fuerza">Fuerza (A1)</div>
+                    <div class="casillero" data-attr="inteligencia">Int (A2)</div>
+                    <div class="casillero" data-attr="magia">Magia (A4)</div>
+                    <div class="casillero" data-attr="velocidad">Vel (A3)</div>
+                    <div class="casillero" data-attr="defensa">Def (A5)</div>
                 </div>
+                <button id="btn-iniciar-duelo" disabled>Iniciar Duelo</button>
+                <button id="btn-finalizar-batalla" style="display: none;">FINALIZAR BATALLA</button>
+            </div>            <div id="sector-a3" class="sector a3">A3</div>
+        </div>
+        <div class="columna-b">
+            <div id="sector-b1" class="sector b1">B1</div>
+            <div id="sector-b2" class="sector b2">Historial de Duelos</div>
+            <div id="sector-b3" class="sector b3">B3</div>
+        </div>
+    </div>
+    <div id="modal-formulario-arma" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioArma()">&times;</span>
+            <h2>CREAR TARJETA: ARMA</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="arma-nombre" placeholder="Escribe el nombre del arma">
+                
+                <label>Descripción:</label>
+                <textarea id="arma-descripcion" placeholder="Escribe la descripción de tu arma..."></textarea>
+                
+                <div class="seccion-efectos">
+                    <h3>Efectos <button type="button" onclick="agregarEfectoArma()">+</button></h3>
+                    <div id="lista-efectos-arma"></div>
+                </div>
+                
+                <div class="seccion-excepciones">
+                    <h3>Excepciones <button type="button" onclick="agregarExcepcionArma()">+</button></h3>
+                    <div id="lista-excepciones-arma"></div>
+                </div>
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaArma()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+<div id="modal-formulario-armadura" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioArmadura()">&times;</span>
+            <h2>CREAR TARJETA: ARMADURA</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="armadura-nombre" placeholder="Escribe el nombre de la armadura">
+                
+                <label>Descripción:</label>
+                <textarea id="armadura-descripcion" placeholder="Escribe la descripción de tu armadura..."></textarea>
+                
+                <div class="seccion-efectos">
+                    <h3>Efectos <button type="button" onclick="agregarEfectoArmadura()">+</button></h3>
+                    <div id="lista-efectos-armadura"></div>
+                </div>
+                
+                <div class="seccion-excepciones">
+                    <h3>Excepciones <button type="button" onclick="agregarExcepcionArmadura()">+</button></h3>
+                    <div id="lista-excepciones-armadura"></div>
+                </div>
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaArmadura()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-formulario-reliquia" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioReliquia()">&times;</span>
+            <h2>CREAR TARJETA: RELIQUIA</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="reliquia-nombre" placeholder="Escribe el nombre de la reliquia">
+                
+                <label>Descripción:</label>
+                <textarea id="reliquia-descripcion" placeholder="Escribe la descripción de tu reliquia..."></textarea>
+                
+                <div class="seccion-efectos">
+                    <h3>Efectos <button type="button" onclick="agregarEfectoReliquia()">+</button></h3>
+                    <div id="lista-efectos-reliquia"></div>
+                </div>
+                
+                <div class="seccion-excepciones">
+                    <h3>Excepciones <button type="button" onclick="agregarExcepcionReliquia()">+</button></h3>
+                    <div id="lista-excepciones-reliquia"></div>
+                </div>
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaReliquia()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-formulario-montura" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioMontura()">&times;</span>
+            <h2>CREAR TARJETA: MONTURA</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="montura-nombre" placeholder="Escribe el nombre de la montura">
+                
+                <label>Descripción:</label>
+                <textarea id="montura-descripcion" placeholder="Escribe la descripción de tu montura..."></textarea>
+                
+                <div class="seccion-efectos">
+                    <h3>Efectos <button type="button" onclick="agregarEfectoMontura()">+</button></h3>
+                    <div id="lista-efectos-montura"></div>
+                </div>
+                
+                <div class="seccion-excepciones">
+                    <h3>Excepciones <button type="button" onclick="agregarExcepcionMontura()">+</button></h3>
+                    <div id="lista-excepciones-montura"></div>
+                </div>
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaMontura()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-formulario-consumible" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioConsumible()">&times;</span>
+            <h2>CREAR TARJETA: CONSUMIBLE</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="consumible-nombre" placeholder="Escribe el nombre del consumible">
+                
+                <label>Descripción:</label>
+                <textarea id="consumible-descripcion" placeholder="Escribe la descripción de tu consumible..."></textarea>
+                
+                <label>Tiempo del efecto (Turnos):</label>
+                <input type="number" id="consumible-turnos" min="1" max="3" placeholder="Ej: 1 a 3">
+                
+                <div class="seccion-efectos">
+                    <h3>Efectos <button type="button" onclick="agregarEfectoConsumible()">+</button></h3>
+                    <div id="lista-efectos-consumible"></div>
+                </div>
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaConsumible()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-detalle-tarjeta" class="modal">
+                <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarModalTarjetaDetalle()">&times;</span>
+            <div id="contenido-detalle-tarjeta"></div>
+        </div>
+    </div>
+    <div id="modal-formulario-entorno" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioEntorno()">&times;</span>
+            <h2 id="titulo-formulario-entorno">CREAR TARJETA: TERRITORIO</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="entorno-nombre" placeholder="Escribe el nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="entorno-descripcion" placeholder="Escribe la descripción..."></textarea>
+                
+                <label>Aplicar a Personajes de Tipo:</label>
+                <select id="entorno-tipo-afectado" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #1a1a1a; color: white; border: 1px solid #4a3621; border-radius: 4px;">
+                </select>
+
+                <div class="seccion-efectos">
+                    <h3>Efectos <button type="button" onclick="agregarEfectoEntorno()">+</button></h3>
+                    <div id="lista-efectos-entorno"></div>
+                </div>
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaEntorno()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-formulario-conocimiento" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioConocimiento()">&times;</span>
+            <h2>CREAR TARJETA: CONOCIMIENTO</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="conocimiento-nombre" placeholder="Escribe el nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="conocimiento-descripcion" placeholder="Escribe la descripción..."></textarea>
+                
+                <label>Puntos a sumar a Inteligencia:</label>
+                <input type="number" id="conocimiento-puntos" placeholder="+ Puntos" min="1">
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaConocimiento()">GUARDAR TARJETA</button>
             </div>
         </div>
     </div>
 
+    <div id="modal-formulario-bendicion" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioBendicion()">&times;</span>
+            <h2>CREAR TARJETA: BENDICIÓN</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="bendicion-nombre" placeholder="Escribe el nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="bendicion-descripcion" placeholder="Escribe la descripción..."></textarea>
+                
+                <label>Puntos a sumar a TODOS los atributos:</label>
+                <input type="number" id="bendicion-puntos" placeholder="+ Puntos" min="1">
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaBendicion()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-formulario-maldicion" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioMaldicion()">&times;</span>
+            <h2>CREAR TARJETA: MALDICIÓN</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="maldicion-nombre" placeholder="Escribe el nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="maldicion-descripcion" placeholder="Escribe la descripción..."></textarea>
+                
+                <label>Puntos a quitar a TODOS los atributos:</label>
+                <input type="number" id="maldicion-puntos" placeholder="Puntos a restar (ej: 5)" min="1">
+                
+                <<button id="btn-guardar-tarjeta" onclick="guardarTarjetaMaldicion()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-formulario-vinculo" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioVinculo()">&times;</span>
+            <h2 id="titulo-formulario-vinculo">CREAR TARJETA</h2>
+            <div class="formulario-tarjeta">
+                <label id="label-vinculo-personajes">Selecciona el personaje:</label>
+                <select id="vinculo-personajes" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #1a1a1a; color: white; border: 1px solid #4a3621; border-radius: 4px;">
+                </select>
+                <p id="vinculo-nombre-generado" style="color: #88c0d0; margin-bottom: 15px; font-weight: bold;"></p>
+                
+                <label>Descripción:</label>
+                <textarea id="vinculo-descripcion" placeholder="Escribe la descripción del vínculo..."></textarea>
+                
+                <label>Cantidad de puntos (se aplicarán a todos los atributos en duelo):</label>
+                <input type="number" id="vinculo-puntos" placeholder="Puntos" min="1">
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaVinculo()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
 </body>
+<div id="modal-formulario-miedo" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioMiedo()">&times;</span>
+            <h2>CREAR TARJETA: MIEDO</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="miedo-nombre" placeholder="Escribe el nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="miedo-descripcion" placeholder="Escribe la descripción..."></textarea>
+                
+                <label>Aplicar cuando en la mano rival esté (Personaje o Tipo):</label>
+                <select id="miedo-tipo-afectado" class="exc-tipo" onchange="actualizarPersonajesMiedo()" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #1a1a1a; color: white; border: 1px solid #4a3621; border-radius: 4px;">
+                </select>
+                <select id="miedo-personaje" class="exc-personaje" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #1a1a1a; color: white; border: 1px solid #4a3621; border-radius: 4px;">
+                    <option value="">Cualquiera del tipo seleccionado</option>
+                </select>
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaMiedo()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-formulario-debilidad" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioDebilidad()">&times;</span>
+            <h2>CREAR TARJETA: DEBILIDAD</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="debilidad-nombre" placeholder="Escribe el nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="debilidad-descripcion" placeholder="Escribe la descripción..."></textarea>
+                
+                <div class="seccion-excepciones">
+                    <h3>Condición: Si en mano rival está... <button type="button" onclick="agregarCondicionDebilidad()">+</button></h3>
+                    <div id="lista-condiciones-debilidad"></div>
+                </div>
+
+                <div class="seccion-efectos">
+                    <h3>Efectos Adversos (Disminuir puntos) <button type="button" onclick="agregarEfectoDebilidad()">+</button></h3>
+                    <div id="lista-efectos-debilidad"></div>
+                </div>
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaDebilidad()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-formulario-inmunidad" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioInmunidad()">&times;</span>
+            <h2>CREAR TARJETA: INMUNIDAD</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="inmunidad-nombre" placeholder="Escribe el nombre de la tarjeta">
+                
+                <label>Descripción (El rival no podrá usar efectos de tarjetas):</label>
+                <textarea id="inmunidad-descripcion" placeholder="Describe esta inmunidad..."></textarea>
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaInmunidad()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-formulario-mutacion" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioMutacion()">&times;</span>
+            <h2>CREAR TARJETA: MUTACIÓN</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="mutacion-nombre" placeholder="Escribe el nombre de la tarjeta">
+                
+                <label>Descripción (Redistribución de todos los atributos a gusto):</label>
+                <textarea id="mutacion-descripcion" placeholder="Describe esta mutación..."></textarea>
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaMutacion()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-formulario-enfermedad" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioEnfermedad()">&times;</span>
+            <h2>CREAR TARJETA: ENFERMEDAD</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="enfermedad-nombre" placeholder="Escribe el nombre de la enfermedad">
+                
+                <label>Descripción:</label>
+                <textarea id="enfermedad-descripcion" placeholder="Escribe la descripción de la enfermedad..."></textarea>
+                
+                <label>Atributo a escoger (afectado principalmente):</label>
+                <select id="enfermedad-atributo" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #1a1a1a; color: white; border: 1px solid #4a3621; border-radius: 4px;">
+                    <option value="fuerza">Fuerza</option>
+                    <option value="inteligencia">Inteligencia</option>
+                    <option value="magia">Magia</option>
+                    <option value="velocidad">Velocidad</option>
+                    <option value="defensa">Defensa</option>
+                </select>
+
+                <p style="color: #ff8888; font-size: 12px; margin-bottom: 15px;">* Cada turno disminuirá un número aleatorio del 1 al 15 en todos sus atributos (sea o no usado).</p>
+                
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaEnfermedad()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-editor-historia" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarEditorHistoria()">&times;</span>
+            <h2>EDITAR HISTORIA DEL PERSONAJE</h2>
+            <div class="formulario-tarjeta">
+                <label>Historia actual:</label>
+                <textarea id="editor-historia-texto" rows="10" style="width: 100%; padding: 10px; background: #1a1a1a; color: white; border: 1px solid #4a3621; border-radius: 4px; resize: vertical; margin-bottom: 15px;"></textarea>
+                <button id="btn-guardar-historia" onclick="guardarHistoriaPersonaje()">GUARDAR HISTORIA Y REINICIAR DUELOS</button>
+            </div>
+        </div>
+    </div>
 </html>
