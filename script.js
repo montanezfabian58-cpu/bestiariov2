@@ -810,10 +810,12 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
     });
 
     tarjetas.forEach(tarjeta => {
+        let modificadorTarjeta = 0;
+
         if (tarjeta.efectos && !["Aliado", "Rival", "Grupo", "Pareja", "Amor", "Odio"].includes(tarjeta.tipo)) {
             const efecto = tarjeta.efectos.find(e => e.atributo && e.atributo.toLowerCase() === attr.toLowerCase());
             if (efecto) {
-                total += efecto.modificacion;
+                modificadorTarjeta += parseInt(efecto.modificacion) || 0;
             }
         }
 
@@ -842,17 +844,17 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             
             if (tarjeta.tipo === "Aliado") {
                 if (bEnMismaMano) {
-                    total += pts;
+                    modificadorTarjeta += pts;
                 }
                 if (bEnOtraMano) {
-                    total -= pts;
+                    modificadorTarjeta -= pts;
                 }
             } else if (tarjeta.tipo === "Rival") {
                 if (bEnMismaMano) {
-                    total -= pts;
+                    modificadorTarjeta -= pts;
                 }
                 if (bEnOtraMano) {
-                    total += pts;
+                    modificadorTarjeta += pts;
                 }
             }
         }
@@ -876,7 +878,7 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             let pts = parseInt(tarjeta.puntosVinculo || tarjeta.puntos) || 0;
             let sumaPuntos = (cantidadMismaMano - cantidadManoContraria) * pts;
             
-            total += sumaPuntos;
+            modificadorTarjeta += sumaPuntos;
         }
 
         if (tarjeta.tipo === "Grupo") {
@@ -894,7 +896,7 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             let personajesEnMismaMano = involucrados.filter(vid => miMano.some(p => p.id === vid)).length;
             let pts = parseInt(tarjeta.puntosVinculo || tarjeta.puntos) || 0;
             
-            total += (personajesEnMismaMano * pts);
+            modificadorTarjeta += (personajesEnMismaMano * pts);
         }
 
         if (tarjeta.tipo === "Amor") {
@@ -902,9 +904,9 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
             let vincIds = Array.isArray(tarjeta.vinculadosIds) ? tarjeta.vinculadosIds : [tarjeta.vinculadosIds];
             if (miMano.some(p => vincIds.includes(p.id))) {
-                total += 25;
+                modificadorTarjeta += 25;
             } else if (otraMano.some(p => vincIds.includes(p.id))) {
-                total -= 50;
+                modificadorTarjeta -= 50;
             }
         }
 
@@ -913,40 +915,13 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
             let vincIds = Array.isArray(tarjeta.vinculadosIds) ? tarjeta.vinculadosIds : [tarjeta.vinculadosIds];
             if (miMano.some(p => vincIds.includes(p.id))) {
-                total -= 10;
+                modificadorTarjeta -= 10;
             } else if (otraMano.some(p => vincIds.includes(p.id))) {
-                total += 60;
+                modificadorTarjeta += 60;
             }
         }
 
-       if (tarjeta.tipo === "Miedo" && tarjeta.excepciones && tarjeta.excepciones.length > 0) {
-            let miMano = bandoPersonaje === 'usuario' ? manoUsuario : manoRival;
-            let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
-            
-            tarjeta.excepciones.forEach(exc => {
-                let aplica = false;
-                let enPropia = miMano.some(p => (exc.personajeId && p.id === exc.personajeId) || (!exc.personajeId && exc.tipo && (p.tipo || "").includes(exc.tipo)));
-                let enRival = otraMano.some(p => (exc.personajeId && p.id === exc.personajeId) || (!exc.personajeId && exc.tipo && (p.tipo || "").includes(exc.tipo)));
-                
-                if (enPropia || enRival) {
-                    aplica = true;
-                }
-
-                if (aplica) {
-                    if (exc.condicion === "Aumento") {
-                        total += total * ((exc.porcentaje || 50) / 100);
-                    } else if (exc.condicion === "Debilidad") {
-                        total -= total * ((exc.porcentaje || 50) / 100);
-                    } else if (exc.condicion === "Inmune") {
-                        total += 999;
-                    } else if (exc.condicion === "Destino") {
-                        total *= 2; 
-                    } else {
-                        total -= total * 0.5;
-                    }
-                }
-            });
-        } else if (tarjeta.excepciones && tarjeta.excepciones.length > 0 && oponente) {
+        if (tarjeta.excepciones && tarjeta.excepciones.length > 0 && oponente) {
             tarjeta.excepciones.forEach(exc => {
                 let aplica = false;
                 if (exc.personajeId && exc.personajeId === oponente.id) {
@@ -957,17 +932,19 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
 
                 if (aplica) {
                     if (exc.condicion === "Aumento") {
-                        total += total * (exc.porcentaje / 100);
+                        modificadorTarjeta += modificadorTarjeta * ((parseInt(exc.porcentaje) || 0) / 100);
                     } else if (exc.condicion === "Debilidad") {
-                        total -= total * (exc.porcentaje / 100);
+                        modificadorTarjeta -= modificadorTarjeta * ((parseInt(exc.porcentaje) || 0) / 100);
                     } else if (exc.condicion === "Inmune") {
-                        total += 999;
+                        modificadorTarjeta += 999;
                     } else if (exc.condicion === "Destino") {
-                        total *= 2; 
+                        modificadorTarjeta *= 2; 
                     }
                 }
             });
         }
+
+        total += modificadorTarjeta;
     });
 
     if (personaje.consumibles) {
