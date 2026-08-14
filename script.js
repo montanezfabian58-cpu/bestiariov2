@@ -1595,7 +1595,7 @@ function agregarEfectoArmadura(esPrincipal = false) {
             <select class="efecto-atributo" disabled style="opacity: 1; -webkit-text-fill-color: white;">
                 <option value="defensa" selected>Defensa</option>
             </select>
-            <input type="number" class="efecto-valor" placeholder="+ Puntos">
+            <input type="number" class="efecto-valor" placeholder="+ Puntos" min="1">
             <button type="button" style="visibility: hidden;">X</button>
         `;
     } else {
@@ -1667,6 +1667,12 @@ async function guardarTarjetaArmadura() {
             modificacion: modificacion
         };
     });
+    
+    const efectoDefensa = efectos.find(efecto => efecto.atributo === "defensa");
+    if (!efectoDefensa || efectoDefensa.modificacion <= 0) {
+        alert("La Armadura debe aumentar Defensa con un valor positivo.");
+        return;
+    }
     
     const excepciones = Array.from(document.getElementById("lista-excepciones-armadura").children).map(div => ({
         tipo: div.querySelector('.exc-tipo').value,
@@ -1861,7 +1867,7 @@ function agregarEfectoMontura(esPrincipal = false) {
             <select class="efecto-atributo" disabled style="opacity: 1; -webkit-text-fill-color: white;">
                 <option value="velocidad" selected>Velocidad</option>
             </select>
-            <input type="number" class="efecto-valor" placeholder="+ Puntos">
+            <input type="number" class="efecto-valor" placeholder="+ Puntos" min="1">
             <button type="button" style="visibility: hidden;">X</button>
         `;
     } else {
@@ -2194,6 +2200,12 @@ async function guardarTarjetaMontura() {
             modificacion: modificacion
         };
     });
+    
+    const efectoVelocidad = efectos.find(efecto => efecto.atributo === "velocidad");
+    if (!efectoVelocidad || efectoVelocidad.modificacion <= 0) {
+        alert("La Montura debe aumentar Velocidad con un valor positivo.");
+        return;
+    }
     
     const excepciones = Array.from(document.getElementById("lista-excepciones-montura").children).map(div => ({
         tipo: div.querySelector('.exc-tipo').value,
