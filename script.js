@@ -529,7 +529,7 @@ function iniciarRondaBatalla() {
 }
 function aplicarEquipamientoInicial(personaje) {
     if (typeof tarjetasGuardadas === 'undefined' || !tarjetasGuardadas) return;
-    const equipTipos = ["Arma", "Armadura", "Reliquia", "Montura", "Bendición", "Maldición", "Conocimiento", "Bendicion", "Maldicion"];
+    const equipTipos = ["Bendición", "Maldición", "Conocimiento", "Bendicion", "Maldicion"];
     const tarjetasEquip = tarjetasGuardadas.filter(t => t.propietarioId === personaje.id && equipTipos.includes(t.tipo));
     tarjetasEquip.forEach(tarjeta => {
         if (tarjeta.efectos && tarjeta.efectos.length > 0) {
@@ -799,6 +799,41 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
         }
     });
     const equipTipos = ["Arma", "Armadura", "Reliquia", "Montura", "Bendición", "Maldición", "Conocimiento", "Bendicion", "Maldicion"];
+    const equipTiposConDestino = ["Arma", "Armadura", "Reliquia", "Montura"];
+    const oponenteCoincideConExcepcion = (exc) => {
+        if (!oponente) return false;
+        if (exc.personajeId && exc.personajeId === oponente.id) return true;
+        return !exc.personajeId && exc.tipo && (oponente.tipo || "").includes(exc.tipo);
+    };
+
+    const tarjetasEquipamiento = tarjetasGuardadas.filter(t => t.propietarioId === personaje.id && equipTiposConDestino.includes(t.tipo));
+    tarjetasEquipamiento.forEach(tarjeta => {
+        const excepciones = tarjeta.excepciones || [];
+        const excepcionesDestino = excepciones.filter(exc => exc.condicion === "Destino");
+        const tieneDestinoValido = excepcionesDestino.length === 0 || excepcionesDestino.some(oponenteCoincideConExcepcion);
+
+        if (!tieneDestinoValido) return;
+
+        const efecto = tarjeta.efectos?.find(e => e.atributo && e.atributo.toLowerCase() === attr.toLowerCase());
+        if (!efecto) return;
+
+        let modificadorTarjeta = parseInt(efecto.modificacion) || 0;
+
+        excepciones.forEach(exc => {
+            if (exc.condicion === "Destino" || !oponenteCoincideConExcepcion(exc)) return;
+
+            if (exc.condicion === "Aumento") {
+                modificadorTarjeta += modificadorTarjeta * ((exc.porcentaje || 0) / 100);
+            } else if (exc.condicion === "Debilidad") {
+                modificadorTarjeta -= modificadorTarjeta * ((exc.porcentaje || 0) / 100);
+            } else if (exc.condicion === "Inmune") {
+                modificadorTarjeta += 999;
+            }
+        });
+
+        total += modificadorTarjeta;
+    });
+
     const tarjetas = tarjetasGuardadas.filter(t => {
         if (t.tipo === "Territorio" || t.tipo === "Campo De Fuerza" || equipTipos.includes(t.tipo)) return false;
         if (t.propietarioId === personaje.id) return true;
