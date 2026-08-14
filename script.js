@@ -86,7 +86,8 @@ function abrirModalTarjeta(tarjeta) {
     if (tarjeta.excepciones && tarjeta.excepciones.length > 0) {
         excepcionesHtml = "<ul style='padding-left: 20px; margin-top: 10px; color: #eeeeee; font-size: 14px;'>" + tarjeta.excepciones.map(ex => {
             let objetivo = ex.personajeId ? "Un personaje específico" : (ex.tipo || "Todos");
-            return `<li style="margin-bottom: 6px;"><strong>Objetivo:</strong> ${objetivo} <br><span style="color: #ff8888;">➤ Condición: ${ex.condicion} ${ex.porcentaje ? '('+ex.porcentaje+'%)' : ''}</span></li>`;
+            const detalleCondicion = ex.condicion === "Inmune" ? " (esta tarjeta no surte efecto contra ese objetivo)" : (ex.porcentaje ? '('+ex.porcentaje+'%)' : '');
+            return `<li style="margin-bottom: 6px;"><strong>Objetivo:</strong> ${objetivo} <br><span style="color: #ff8888;">➤ Condición: ${ex.condicion} ${detalleCondicion}</span></li>`;
         }).join("") + "</ul>";
     } else {
         excepcionesHtml = "<p style='color: #888; font-size: 13px; margin-top: 10px;'>Sin excepciones.</p>";
@@ -772,6 +773,23 @@ function asignarRivalAleatorio() {
 function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
     let total = valBase;
     if (typeof tarjetasGuardadas === 'undefined') return total;
+
+    const aplicarCondicionExcepcion = (modificador, exc, porcentajeDefault = 50) => {
+        if (exc.condicion === "Inmune") {
+            return 0;
+        }
+
+        const porcentaje = (exc.porcentaje || porcentajeDefault) / 100;
+        if (exc.condicion === "Aumento") {
+            return modificador + (modificador * porcentaje);
+        } else if (exc.condicion === "Debilidad") {
+            return modificador - (modificador * porcentaje);
+        } else if (exc.condicion === "Destino") {
+            return modificador * 2;
+        }
+
+        return modificador - (modificador * 0.5);
+    };
     
     let todasLasTarjetasEnJuego = [];
     manoUsuario.forEach(p => {
@@ -786,6 +804,8 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
     const bandoPersonaje = manoUsuario.includes(personaje) ? 'usuario' : 'rival';
 
     todasLasTarjetasEnJuego.forEach(tarjeta => {
+        let modificadorTarjeta = 0;
+
         if (tarjeta.tipo === "Territorio" || tarjeta.tipo === "Campo De Fuerza") {
             if ((personaje.tipo || "").includes(tarjeta.tipoAfectado)) {
                 if (tarjeta.tipo === "Campo De Fuerza" && tarjeta.bando !== bandoPersonaje) {
@@ -793,10 +813,12 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
                 }
                 const efecto = tarjeta.efectos?.find(e => e.atributo && e.atributo.toLowerCase() === attr.toLowerCase());
                 if (efecto) {
-                    total += parseInt(efecto.modificacion) || 0;
+                    modificadorTarjeta += parseInt(efecto.modificacion) || 0;
                 }
             }
         }
+
+        total += modificadorTarjeta;
     });
     const equipTipos = ["Arma", "Armadura", "Reliquia", "Montura", "Bendición", "Maldición", "Conocimiento", "Bendicion", "Maldicion"];
     const tarjetas = tarjetasGuardadas.filter(t => {
@@ -810,10 +832,12 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
     });
 
     tarjetas.forEach(tarjeta => {
+        let modificadorTarjeta = 0;
+
         if (tarjeta.efectos && !["Aliado", "Rival", "Grupo", "Pareja", "Amor", "Odio"].includes(tarjeta.tipo)) {
             const efecto = tarjeta.efectos.find(e => e.atributo && e.atributo.toLowerCase() === attr.toLowerCase());
             if (efecto) {
-                total += efecto.modificacion;
+                modificadorTarjeta += parseInt(efecto.modificacion) || 0;
             }
         }
 
@@ -842,17 +866,17 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             
             if (tarjeta.tipo === "Aliado") {
                 if (bEnMismaMano) {
-                    total += pts;
+                    modificadorTarjeta += pts;
                 }
                 if (bEnOtraMano) {
-                    total -= pts;
+                    modificadorTarjeta -= pts;
                 }
             } else if (tarjeta.tipo === "Rival") {
                 if (bEnMismaMano) {
-                    total -= pts;
+                    modificadorTarjeta -= pts;
                 }
                 if (bEnOtraMano) {
-                    total += pts;
+                    modificadorTarjeta += pts;
                 }
             }
         }
@@ -876,7 +900,7 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             let pts = parseInt(tarjeta.puntosVinculo || tarjeta.puntos) || 0;
             let sumaPuntos = (cantidadMismaMano - cantidadManoContraria) * pts;
             
-            total += sumaPuntos;
+            modificadorTarjeta += sumaPuntos;
         }
 
         if (tarjeta.tipo === "Grupo") {
@@ -894,7 +918,7 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             let personajesEnMismaMano = involucrados.filter(vid => miMano.some(p => p.id === vid)).length;
             let pts = parseInt(tarjeta.puntosVinculo || tarjeta.puntos) || 0;
             
-            total += (personajesEnMismaMano * pts);
+            modificadorTarjeta += (personajesEnMismaMano * pts);
         }
 
         if (tarjeta.tipo === "Amor") {
@@ -902,9 +926,9 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
             let vincIds = Array.isArray(tarjeta.vinculadosIds) ? tarjeta.vinculadosIds : [tarjeta.vinculadosIds];
             if (miMano.some(p => vincIds.includes(p.id))) {
-                total += 25;
+                modificadorTarjeta += 25;
             } else if (otraMano.some(p => vincIds.includes(p.id))) {
-                total -= 50;
+                modificadorTarjeta -= 50;
             }
         }
 
@@ -913,9 +937,9 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
             let vincIds = Array.isArray(tarjeta.vinculadosIds) ? tarjeta.vinculadosIds : [tarjeta.vinculadosIds];
             if (miMano.some(p => vincIds.includes(p.id))) {
-                total -= 10;
+                modificadorTarjeta -= 10;
             } else if (otraMano.some(p => vincIds.includes(p.id))) {
-                total += 60;
+                modificadorTarjeta += 60;
             }
         }
 
@@ -933,17 +957,7 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
                 }
 
                 if (aplica) {
-                    if (exc.condicion === "Aumento") {
-                        total += total * ((exc.porcentaje || 50) / 100);
-                    } else if (exc.condicion === "Debilidad") {
-                        total -= total * ((exc.porcentaje || 50) / 100);
-                    } else if (exc.condicion === "Inmune") {
-                        total += 999;
-                    } else if (exc.condicion === "Destino") {
-                        total *= 2; 
-                    } else {
-                        total -= total * 0.5;
-                    }
+                    modificadorTarjeta = aplicarCondicionExcepcion(modificadorTarjeta, exc);
                 }
             });
         } else if (tarjeta.excepciones && tarjeta.excepciones.length > 0 && oponente) {
@@ -956,18 +970,12 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
                 }
 
                 if (aplica) {
-                    if (exc.condicion === "Aumento") {
-                        total += total * (exc.porcentaje / 100);
-                    } else if (exc.condicion === "Debilidad") {
-                        total -= total * (exc.porcentaje / 100);
-                    } else if (exc.condicion === "Inmune") {
-                        total += 999;
-                    } else if (exc.condicion === "Destino") {
-                        total *= 2; 
-                    }
+                    modificadorTarjeta = aplicarCondicionExcepcion(modificadorTarjeta, exc);
                 }
             });
         }
+
+        total += modificadorTarjeta;
     });
 
     if (personaje.consumibles) {
