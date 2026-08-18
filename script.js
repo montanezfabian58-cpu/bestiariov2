@@ -124,6 +124,166 @@ function abrirModalTarjeta(tarjeta) {
 function cerrarModalTarjetaDetalle() {
     document.getElementById("modal-detalle-tarjeta").style.display = "none";
 }
+function guardarTarjetaEquipamiento() {
+    const tipo = document.getElementById("tipo-tarjeta-equipamiento").value;
+    const nombre = document.getElementById("nombre-tarjeta-equipamiento").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-equipamiento").value;
+    const puntos = parseInt(document.getElementById("puntos-tarjeta-equipamiento").value) || 0;
+
+    const mapaAtributos = {
+        "Arma": "fuerza",
+        "Armadura": "defensa",
+        "Reliquia": "magia",
+        "Montura": "velocidad",
+        "Conocimiento": "inteligencia"
+    };
+
+    const atributoCorrespondiente = mapaAtributos[tipo] || "fuerza";
+
+    const nuevaTarjeta = {
+        idTarjeta: "T_" + Date.now(),
+        nombre: nombre,
+        tipo: tipo,
+        descripcion: descripcion,
+        efectos: [
+            {
+                atributo: atributoCorrespondiente,
+                modificacion: puntos
+            }
+        ]
+    };
+
+    tarjetasGuardadas.push(nuevaTarjeta);
+    if (typeof cerrarFormularioEquipamiento === "function") {
+        cerrarFormularioEquipamiento();
+    }
+}
+function guardarTarjetaEntorno() {
+    const tipo = document.getElementById("tipo-tarjeta-entorno").value;
+    const nombre = document.getElementById("nombre-tarjeta-entorno").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-entorno").value;
+    const puntos = parseInt(document.getElementById("puntos-tarjeta-entorno").value) || 0;
+    const tipoAfectado = document.getElementById("tipo-afectado-entorno").value;
+
+    const nuevaTarjeta = {
+        idTarjeta: "T_" + Date.now(),
+        nombre: nombre,
+        tipo: tipo,
+        descripcion: descripcion,
+        tipoAfectado: tipoAfectado,
+        efectos: [
+            {
+                atributo: "todos",
+                modificacion: puntos
+            }
+        ]
+    };
+
+    tarjetasGuardadas.push(nuevaTarjeta);
+    if (typeof cerrarFormularioEntorno === "function") {
+        cerrarFormularioEntorno();
+    }
+}
+function guardarTarjetaBenMal() {
+    const tipo = document.getElementById("tipo-tarjeta-ben-mal").value;
+    const nombre = document.getElementById("nombre-tarjeta-ben-mal").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-ben-mal").value;
+    const puntos = parseInt(document.getElementById("puntos-tarjeta-ben-mal").value) || 0;
+
+    const nuevaTarjeta = {
+        idTarjeta: "T_" + Date.now(),
+        nombre: nombre,
+        tipo: tipo,
+        descripcion: descripcion,
+        puntos: puntos,
+        efectos: [
+            {
+                atributo: "todos",
+                modificacion: (tipo === "Maldición" || tipo === "Maldicion") ? -Math.abs(puntos) : Math.abs(puntos)
+            }
+        ]
+    };
+
+    tarjetasGuardadas.push(nuevaTarjeta);
+    if (typeof cerrarFormularioBenMal === "function") {
+        cerrarFormularioBenMal();
+    }
+}function abrirFormularioVinculo(tipo) {
+    document.getElementById("modal-tarjeta-historia").style.display = "none";
+    document.getElementById("titulo-formulario-vinculo").innerText = `CREAR VÍNCULO: ${tipo.toUpperCase()}`;
+    document.getElementById("tipo-tarjeta-vinculo").value = tipo;
+    document.getElementById("descripcion-tarjeta-vinculo").value = "";
+    document.getElementById("puntos-tarjeta-vinculo").value = 25;
+
+    const select = document.getElementById("personaje-tarjeta-vinculo");
+    if (select) {
+        select.innerHTML = "";
+        personajes.forEach(p => {
+            if (p.id !== idPropietarioTarjetaActual) {
+                const opt = document.createElement("option");
+                opt.value = p.id;
+                opt.textContent = p.nombre;
+                select.appendChild(opt);
+            }
+        });
+    }
+
+    document.getElementById("modal-formulario-vinculo").style.display = "block";
+}
+
+function cerrarFormularioVinculo() {
+    document.getElementById("modal-formulario-vinculo").style.display = "none";
+}
+
+function guardarTarjetaVinculo() {
+    const tipo = document.getElementById("tipo-tarjeta-vinculo").value;
+    const vinculadoId = document.getElementById("personaje-tarjeta-vinculo").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-vinculo").value;
+    const puntos = parseInt(document.getElementById("puntos-tarjeta-vinculo").value) || 0;
+
+    const propietarioId = idPropietarioTarjetaActual || window.personajeActualId || document.getElementById("personaje-actual-id")?.value;
+    const personajeB = personajes.find(p => p.id === vinculadoId);
+
+    const nuevaTarjeta = {
+        idTarjeta: "tarjeta_" + Date.now(),
+        propietarioId: propietarioId,
+        tipo: tipo,
+        nombre: tipo === "Amor" ? `Amor hacia ${personajeB ? personajeB.nombre : 'Objetivo'}` : "Vínculo: " + tipo,
+        descripcion: descripcion,
+        vinculadosIds: [vinculadoId],
+        puntosVinculo: puntos,
+        efectos: [
+            {
+                atributo: "todos",
+                modificacion: puntos
+            }
+        ],
+        excepciones: []
+    };
+
+    if (typeof tarjetasGuardadas === 'undefined') {
+        window.tarjetasGuardadas = [];
+    }
+    tarjetasGuardadas.push(nuevaTarjeta);
+
+    const blob = new Blob([JSON.stringify(tarjetasGuardadas, null, 4)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tarjeta.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    cerrarFormularioVinculo();
+    mostrarTarjetas(tarjetasGuardadas);
+
+    const personaje = personajes.find(p => p.id === propietarioId);
+    if (personaje) {
+        abrirModal(personaje);
+    }
+}
 function abrirModalTarjetaPorId(idTarjeta) {
     const tarjeta = tarjetasGuardadas.find(t => t.idTarjeta === idTarjeta);
     if(tarjeta) {
@@ -527,20 +687,51 @@ function iniciarRondaBatalla() {
     manoRival = [];
     
     repartirCartas();
-}
-const TIPOS_EQUIPAMIENTO_PERMANENTE = ["Arma", "Armadura", "Reliquia", "Montura"];
-const TIPOS_EFECTOS_NO_EQUIPAMIENTO = ["Bendición", "Maldición", "Conocimiento", "Bendicion", "Maldicion"];
+}const MAPA_EQUIPAMIENTO = {
+    "Arma": "fuerza",
+    "Armadura": "defensa",
+    "Reliquia": "magia",
+    "Montura": "velocidad",
+    "Conocimiento": "inteligencia"
+};
+
+const TIPOS_EQUIPAMIENTO_PERMANENTE = ["Arma", "Armadura", "Reliquia", "Montura", "Conocimiento"];
+const TIPOS_EFECTOS_NO_EQUIPAMIENTO = ["Bendición", "Maldición", "Bendicion", "Maldicion"];
 const TIPOS_MODIFICADORES_PERMANENTES = [...TIPOS_EQUIPAMIENTO_PERMANENTE, ...TIPOS_EFECTOS_NO_EQUIPAMIENTO];
 
-function aplicarEquipamientoInicial(personaje) {
+
+   function aplicarEquipamientoInicial(personaje) {
     if (typeof tarjetasGuardadas === 'undefined' || !tarjetasGuardadas) return;
+
+    const tarjetasMutacion = tarjetasGuardadas.filter(t => t.propietarioId === personaje.id && (t.tipo === "Mutación" || t.tipo === "Mutacion"));
+    if (tarjetasMutacion.length > 0) {
+        const ultimaMutacion = tarjetasMutacion[tarjetasMutacion.length - 1];
+        if (ultimaMutacion.nuevosAtributosBase) {
+            personaje.atributos = { ...ultimaMutacion.nuevosAtributosBase };
+        } else if (ultimaMutacion.efectos && ultimaMutacion.efectos.length > 0) {
+            ultimaMutacion.efectos.forEach(e => {
+                if (e.atributo && personaje.atributos && personaje.atributos[e.atributo.toLowerCase()] !== undefined) {
+                    personaje.atributos[e.atributo.toLowerCase()] = parseInt(e.modificacion) || 0;
+                }
+            });
+        }
+    }
+
+    if (tarjetasGuardadas.some(t => t.tipo === "Inmunidad" && t.propietarioId === personaje.id)) {
+        personaje.consumibles = [];
+        return;
+    }
+
     const tarjetasEquip = tarjetasGuardadas.filter(t => t.propietarioId === personaje.id && TIPOS_MODIFICADORES_PERMANENTES.includes(t.tipo));
     tarjetasEquip.forEach(tarjeta => {
         if (tarjeta.efectos && tarjeta.efectos.length > 0) {
             tarjeta.efectos.forEach(efecto => {
-                const attr = efecto.atributo ? efecto.atributo.toLowerCase() : null;
+                let attr = efecto.atributo ? efecto.atributo.toLowerCase() : null;
+                if (!attr || attr === "general") {
+                    attr = MAPA_EQUIPAMIENTO[tarjeta.tipo];
+                }
                 if (attr && personaje.atributos && personaje.atributos[attr] !== undefined) {
-                    let valBase = getStatInfo(attr, personaje.atributos[attr]).statValue;
+                    let valBase = (typeof getStatInfo === 'function') ? getStatInfo(attr, personaje.atributos[attr]).statValue : (parseInt(personaje.atributos[attr]) || 0);
                     personaje.atributos[attr] = Math.max(0, valBase + (parseInt(efecto.modificacion) || 0));
                 }
             });
@@ -741,6 +932,27 @@ function asignarAtributo(atributo, indexCarta) {
             if (Object.values(asignacionesUsuario).includes(indexCarta)) return;
         }
 
+        const personajeA = manoUsuario[indexCarta];
+
+        const odioA = tarjetasGuardadas.find(t => t.tipo === "Odio" && t.propietarioId === personajeA.id);
+        if (odioA) {
+            let vincIds = Array.isArray(odioA.vinculadosIds) ? odioA.vinculadosIds : [odioA.vinculadosIds];
+            const indexB = manoRival.findIndex(p => vincIds.includes(p.id));
+            if (indexB !== -1) {
+                asignacionesRival[atributo] = indexB;
+            }
+        }
+
+        manoRival.forEach((rivalA, indexRivalA) => {
+            const odioRival = tarjetasGuardadas.find(t => t.tipo === "Odio" && t.propietarioId === rivalA.id);
+            if (odioRival) {
+                let vincIds = Array.isArray(odioRival.vinculadosIds) ? odioRival.vinculadosIds : [odioRival.vinculadosIds];
+                if (vincIds.includes(personajeA.id)) {
+                    asignacionesRival[atributo] = indexRivalA;
+                }
+            }
+        });
+
         asignacionesUsuario[atributo] = indexCarta;
     const casillero = document.querySelector(`.casillero[data-attr="${atributo}"]`);
         if(casillero) {
@@ -767,13 +979,27 @@ function comprobarListos() {
 
 function asignarRivalAleatorio() {
         let indicesDisponibles = manoRival.map((_, i) => i);
+        
+        if (manoRival.length >= 5) {
+            Object.values(asignacionesRival).forEach(asignado => {
+                indicesDisponibles = indicesDisponibles.filter(i => i !== asignado);
+            });
+        }
+
         indicesDisponibles.sort(() => 0.5 - Math.random());
         
-        ATRIBUTOS.forEach((attr, i) => {
-            asignacionesRival[attr] = indicesDisponibles[i % indicesDisponibles.length];
+        ATRIBUTOS.forEach((attr) => {
+            if (asignacionesRival[attr] === undefined) {
+                let nextIndex = indicesDisponibles.pop();
+                if (nextIndex === undefined && manoRival.length > 0) {
+                    nextIndex = Math.floor(Math.random() * manoRival.length);
+                }
+                if (nextIndex !== undefined) {
+                    asignacionesRival[attr] = nextIndex;
+                }
+            }
         });
     }
-
 function calcularModificadorEquipamiento(tarjeta, personaje, oponente, attr, totalActual = 0) {
     if (!tarjeta || !TIPOS_EQUIPAMIENTO_PERMANENTE.includes(tarjeta.tipo) || tarjeta.propietarioId !== personaje.id) {
         return 0;
@@ -814,6 +1040,10 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
     let total = valBase;
     if (typeof tarjetasGuardadas === 'undefined') return total;
 
+    if (tarjetasGuardadas.some(ti => ti.tipo === "Inmunidad" && ti.propietarioId === personaje.id)) {
+        return total;
+    }
+
     const aplicarCondicionExcepcion = (modificador, exc, porcentajeDefault = 50) => {
         if (exc.condicion === "Inmune") {
             return 0;
@@ -851,19 +1081,36 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
                 if (tarjeta.tipo === "Campo De Fuerza" && tarjeta.bando !== bandoPersonaje) {
                     return; 
                 }
-                const efecto = tarjeta.efectos?.find(e => e.atributo && e.atributo.toLowerCase() === attr.toLowerCase());
-                if (efecto) {
-                    modificadorTarjeta += parseInt(efecto.modificacion) || 0;
+                if (tarjeta.efectos && tarjeta.efectos.length > 0) {
+                    modificadorTarjeta += parseInt(tarjeta.efectos[0].modificacion) || 0;
                 }
             }
         }
 
         total += modificadorTarjeta;
     });
+
+    const tarjetasBenMal = tarjetasGuardadas.filter(t => 
+        t.propietarioId === personaje.id && 
+        (t.tipo === "Bendición" || t.tipo === "Bendicion" || t.tipo === "Maldición" || t.tipo === "Maldicion")
+    );
+
+    tarjetasBenMal.forEach(tarjeta => {
+        let pts = parseInt(tarjeta.puntos) || 0;
+        if (pts === 0 && tarjeta.efectos && tarjeta.efectos.length > 0) {
+            pts = Math.abs(parseInt(tarjeta.efectos[0].modificacion) || 0);
+        }
+        if (tarjeta.tipo === "Bendición" || tarjeta.tipo === "Bendicion") {
+            total += pts;
+        } else if (tarjeta.tipo === "Maldición" || tarjeta.tipo === "Maldicion") {
+            total -= pts;
+        }
+    });
+
     const tarjetas = tarjetasGuardadas.filter(t => {
         if (t.tipo === "Territorio" || t.tipo === "Campo De Fuerza" || TIPOS_EFECTOS_NO_EQUIPAMIENTO.includes(t.tipo)) return false;
         if (t.propietarioId === personaje.id) return true;
-        if (["Aliado", "Rival", "Grupo", "Pareja", "Amor", "Odio"].includes(t.tipo) && t.vinculadosIds && t.vinculadosIds.includes(personaje.id)) {
+        if (["Aliado", "Rival", "Grupo", "Pareja", "Odio"].includes(t.tipo) && t.vinculadosIds && t.vinculadosIds.includes(personaje.id)) {
             const tieneTarjetaPropia = tarjetasGuardadas.some(tp => tp.propietarioId === personaje.id && tp.tipo === t.tipo && tp.vinculadosIds && tp.vinculadosIds.includes(t.propietarioId));
             return !tieneTarjetaPropia;
         }
@@ -871,6 +1118,7 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
     });
 
     tarjetas.forEach(tarjeta => {
+        let modificadorTarjeta = 0;
         if (TIPOS_EQUIPAMIENTO_PERMANENTE.includes(tarjeta.tipo)) {
             total += calcularModificadorEquipamiento(tarjeta, personaje, oponente, attr, total);
         } else if (tarjeta.efectos && !["Aliado", "Rival", "Grupo", "Pareja", "Amor", "Odio"].includes(tarjeta.tipo)) {
@@ -879,69 +1127,59 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
                 total += parseInt(efecto.modificacion) || 0;
             }
         }
-
-       if (tarjeta.tipo === "Aliado" || tarjeta.tipo === "Rival") {
-            let miMano = bandoPersonaje === 'usuario' ? manoUsuario : manoRival;
-            let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
-            
-            let involucrados = [tarjeta.propietarioId];
+if (tarjeta.tipo === "Aliado" || tarjeta.tipo === "Rival" || tarjeta.tipo === "Pareja") {
+            let esPersonajeA = personaje.id === tarjeta.propietarioId;
+            let vinculados = [];
             if (tarjeta.vinculadosIds) {
-                if (Array.isArray(tarjeta.vinculadosIds)) {
-                    involucrados.push(...tarjeta.vinculadosIds);
-                } else {
-                    involucrados.push(tarjeta.vinculadosIds);
-                }
+                vinculados = Array.isArray(tarjeta.vinculadosIds) ? tarjeta.vinculadosIds : [tarjeta.vinculadosIds];
             }
-            let personajeB = involucrados.filter(id => id !== personaje.id);
+            let esPersonajeB = vinculados.includes(personaje.id);
 
-            let bEnMismaMano = personajeB.some(vid => miMano.some(p => p.id === vid));
-            let bEnOtraMano = personajeB.some(vid => otraMano.some(p => p.id === vid));
+            if (esPersonajeA || esPersonajeB) {
+                let pts = parseInt(tarjeta.puntosVinculo || tarjeta.puntos) || 0;
+                if (pts === 0 && tarjeta.efectos && tarjeta.efectos.length > 0) {
+                    pts = Math.abs(parseInt(tarjeta.efectos[0].modificacion) || 0);
+                }
 
-            let pts = parseInt(tarjeta.puntosVinculo || tarjeta.puntos) || 0;
-            if (pts === 0 && tarjeta.efectos) {
-                const ef = tarjeta.efectos.find(e => e.atributo && e.atributo.toLowerCase() === attr.toLowerCase());
-                if (ef) pts = Math.abs(parseInt(ef.modificacion) || 0);
-            }
-            
-            if (tarjeta.tipo === "Aliado") {
-                if (bEnMismaMano) {
-                    modificadorTarjeta += pts;
-                }
-                if (bEnOtraMano) {
-                    modificadorTarjeta -= pts;
-                }
-            } else if (tarjeta.tipo === "Rival") {
-                if (bEnMismaMano) {
-                    modificadorTarjeta -= pts;
-                }
-                if (bEnOtraMano) {
-                    modificadorTarjeta += pts;
+                let bandoA = null;
+                if (manoUsuario.some(p => p.id === tarjeta.propietarioId)) bandoA = 'usuario';
+                else if (manoRival.some(p => p.id === tarjeta.propietarioId)) bandoA = 'rival';
+
+                if (bandoA) {
+                    let manoA = bandoA === 'usuario' ? manoUsuario : manoRival;
+                    let manoContrariaA = bandoA === 'usuario' ? manoRival : manoUsuario;
+                    
+                    let bEnMismoBandoQueA = 0;
+                    let bEnBandoContrarioAA = 0;
+
+                    vinculados.forEach(vid => {
+                        if (manoA.some(p => p.id === vid)) bEnMismoBandoQueA++;
+                        if (manoContrariaA.some(p => p.id === vid)) bEnBandoContrarioAA++;
+                    });
+
+                    if (esPersonajeA) {
+                        let modificadorFinal = 0;
+                        if (tarjeta.tipo === "Aliado" || tarjeta.tipo === "Pareja") {
+                            modificadorFinal += (bEnMismoBandoQueA * pts);
+                            modificadorFinal -= (bEnBandoContrarioAA * pts);
+                        } else if (tarjeta.tipo === "Rival") {
+                            modificadorFinal -= (bEnMismoBandoQueA * pts);
+                            modificadorFinal += (bEnBandoContrarioAA * pts);
+                        }
+                        modificadorTarjeta += modificadorFinal;
+                    } else if (esPersonajeB) {
+                        let esMismoBando = (bandoPersonaje === bandoA);
+                        if (tarjeta.tipo === "Aliado" || tarjeta.tipo === "Pareja") {
+                            if (esMismoBando) modificadorTarjeta += pts;
+                            else modificadorTarjeta -= pts;
+                        } else if (tarjeta.tipo === "Rival") {
+                            if (esMismoBando) modificadorTarjeta -= pts;
+                            else modificadorTarjeta += pts;
+                        }
+                    }
                 }
             }
         }
-        if (tarjeta.tipo === "Pareja") {
-            let miMano = bandoPersonaje === 'usuario' ? manoUsuario : manoRival;
-            let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
-            
-            let involucrados = [tarjeta.propietarioId];
-            if (tarjeta.vinculadosIds) {
-                if (Array.isArray(tarjeta.vinculadosIds)) {
-                    involucrados.push(...tarjeta.vinculadosIds);
-                } else {
-                    involucrados.push(tarjeta.vinculadosIds);
-                }
-            }
-            let otrosInvolucrados = involucrados.filter(id => id !== personaje.id);
-
-            let cantidadMismaMano = otrosInvolucrados.filter(vid => miMano.some(p => p.id === vid)).length;
-            let cantidadManoContraria = otrosInvolucrados.filter(vid => otraMano.some(p => p.id === vid)).length;
-
-            let pts = parseInt(tarjeta.puntosVinculo || tarjeta.puntos) || 0;
-            let sumaPuntos = (cantidadMismaMano - cantidadManoContraria) * pts;
-            
-            modificadorTarjeta += sumaPuntos;
-        }
-
         if (tarjeta.tipo === "Grupo") {
             let miMano = bandoPersonaje === 'usuario' ? manoUsuario : manoRival;
             
@@ -959,46 +1197,39 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
             
             modificadorTarjeta += (personajesEnMismaMano * pts);
         }
-
-        if (tarjeta.tipo === "Amor") {
-            let miMano = bandoPersonaje === 'usuario' ? manoUsuario : manoRival;
-            let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
-            let vincIds = Array.isArray(tarjeta.vinculadosIds) ? tarjeta.vinculadosIds : [tarjeta.vinculadosIds];
-            if (miMano.some(p => vincIds.includes(p.id))) {
-                modificadorTarjeta += 25;
-            } else if (otraMano.some(p => vincIds.includes(p.id))) {
-                modificadorTarjeta -= 50;
+if (tarjeta.tipo === "Amor") {
+            if (tarjeta.propietarioId === personaje.id) {
+                const tieneInmunidad = tarjetasGuardadas.some(ti => ti.tipo === "Inmunidad" && ti.propietarioId === personaje.id);
+                if (!tieneInmunidad) {
+                    let miMano = bandoPersonaje === 'usuario' ? manoUsuario : manoRival;
+                    let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
+                    let vincIds = Array.isArray(tarjeta.vinculadosIds) ? tarjeta.vinculadosIds : [tarjeta.vinculadosIds];
+                    let pts = parseInt(tarjeta.puntosVinculo || tarjeta.puntos) || 25;
+                    if (miMano.some(p => vincIds.includes(p.id))) {
+                        modificadorTarjeta += Math.abs(pts);
+                    } else if (otraMano.some(p => vincIds.includes(p.id))) {
+                        modificadorTarjeta -= Math.abs(pts) * 2;
+                    }
+                }
             }
         }
 
-        if (tarjeta.tipo === "Odio") {
-            let miMano = bandoPersonaje === 'usuario' ? manoUsuario : manoRival;
-            let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
-            let vincIds = Array.isArray(tarjeta.vinculadosIds) ? tarjeta.vinculadosIds : [tarjeta.vinculadosIds];
-            if (miMano.some(p => vincIds.includes(p.id))) {
-                modificadorTarjeta -= 10;
-            } else if (otraMano.some(p => vincIds.includes(p.id))) {
-                modificadorTarjeta += 60;
+        if (tarjeta.tipo === "Odio" && tarjeta.propietarioId === personaje.id) {
+            const tieneInmunidad = tarjetasGuardadas.some(ti => ti.tipo === "Inmunidad" && ti.propietarioId === personaje.id);
+            if (!tieneInmunidad) {
+                let miMano = bandoPersonaje === 'usuario' ? manoUsuario : manoRival;
+                let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
+                let vincIds = Array.isArray(tarjeta.vinculadosIds) ? tarjeta.vinculadosIds : [tarjeta.vinculadosIds];
+                if (miMano.some(p => vincIds.includes(p.id))) {
+                    modificadorTarjeta -= 10;
+                } else if (otraMano.some(p => vincIds.includes(p.id))) {
+                    modificadorTarjeta += 60;
+                }
             }
         }
 
-       if (tarjeta.tipo === "Miedo" && tarjeta.excepciones && tarjeta.excepciones.length > 0) {
-            let miMano = bandoPersonaje === 'usuario' ? manoUsuario : manoRival;
-            let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
-            
-            tarjeta.excepciones.forEach(exc => {
-                let aplica = false;
-                let enPropia = miMano.some(p => (exc.personajeId && p.id === exc.personajeId) || (!exc.personajeId && exc.tipo && (p.tipo || "").includes(exc.tipo)));
-                let enRival = otraMano.some(p => (exc.personajeId && p.id === exc.personajeId) || (!exc.personajeId && exc.tipo && (p.tipo || "").includes(exc.tipo)));
-                
-                if (enPropia || enRival) {
-                    aplica = true;
-                }
-
-                if (aplica) {
-                    modificadorTarjeta = aplicarCondicionExcepcion(modificadorTarjeta, exc);
-                }
-            });
+      if ((tarjeta.tipo === "Miedo" || tarjeta.tipo === "Debilidad") && tarjeta.propietarioId === personaje.id) {
+            // El efecto de Miedo y Debilidad establece el atributo a 1 de forma absoluta al final
         } else if (!TIPOS_EQUIPAMIENTO_PERMANENTE.includes(tarjeta.tipo) && tarjeta.excepciones && tarjeta.excepciones.length > 0 && oponente) {
             tarjeta.excepciones.forEach(exc => {
                 let aplica = false;
@@ -1025,34 +1256,123 @@ function calcularPuntosBatallaConTarjeta(personaje, oponente, attr, valBase) {
         });
     }
 
+    const tieneInmunidad = tarjetasGuardadas.some(ti => ti.tipo === "Inmunidad" && ti.propietarioId === personaje.id);
+    if (!tieneInmunidad) {
+        let miMano = bandoPersonaje === 'usuario' ? manoUsuario : manoRival;
+        let otraMano = bandoPersonaje === 'usuario' ? manoRival : manoUsuario;
+        
+        let aplicaMiedo = false;
+        let aplicaDebilidad = false;
+
+        tarjetasGuardadas.forEach(t => {
+            if (t.propietarioId === personaje.id && t.excepciones && t.excepciones.length > 0) {
+                if (t.tipo === "Miedo" || t.tipo === "Debilidad") {
+                    let objetivoPresente = false;
+                    t.excepciones.forEach(exc => {
+                        let enPropia = miMano.some(p => (exc.personajeId && p.id === exc.personajeId) || (!exc.personajeId && exc.tipo && (p.tipo || "").includes(exc.tipo)));
+                        let enRival = otraMano.some(p => (exc.personajeId && p.id === exc.personajeId) || (!exc.personajeId && exc.tipo && (p.tipo || "").includes(exc.tipo)));
+                        if (enPropia || enRival) objetivoPresente = true;
+                    });
+                    
+                    if (objetivoPresente) {
+                        if (t.tipo === "Miedo") aplicaMiedo = true;
+                        if (t.tipo === "Debilidad") aplicaDebilidad = true;
+                    }
+                }
+            }
+        });
+
+        if (aplicaMiedo && attr.toLowerCase() === "inteligencia") {
+            total = 1;
+        }
+        if (aplicaDebilidad && (attr.toLowerCase() === "fuerza" || attr.toLowerCase() === "magia" || attr.toLowerCase() === "defensa")) {
+            total = 1;
+        }
+    }
+
     return Math.max(0, Math.round(total));
+    }
+
+function generarLeyendaMitica(pGanador, pPerdedor, attr, valGanador, valPerdedor, puntosRestantes, esSacrificio = false, salvador = null) {
+    const frasesAttr = {
+        fuerza: [
+            "desató un golpe devastador que retumbó en los confines del reino",
+            "demostró una fuerza titánica aplastando toda resistencia",
+            "hizo crujir la tierra con un embate colosal e imparable"
+        ],
+        inteligencia: [
+            "anticipó cada movimiento con una astucia táctica sublime",
+            "desplegó una estrategia milimétrica que tejió la ruina de su oponente",
+            "desmembró la mente enemiga con una lucidez suprema"
+        ],
+        magia: [
+            "canalizó fuerzas arcanas ancestrales desgarrando el velo de la realidad",
+            "desató una tormenta de energía mística infranqueable",
+            "invocó el poder del cosmos para envolver a su rival en perdición"
+        ],
+        velocidad: [
+            "se desplazó como un relámpago imperceptible en la penumbra",
+            "superó el viento con una agilidad mítica dejando sin respuesta a su rival",
+            "asestó un ataque fugaz e implacable antes de que pudiera reaccionar"
+        ],
+        defensa: [
+            "se erigió como un baluarte inquebrantable resistiendo el embate",
+            "forjó una barrera impenetrable que devolvió la desesperación",
+            "soportó la arremetida rival como una fortaleza legendaria"
+        ]
+    };
+
+    const listaFrases = frasesAttr[attr.toLowerCase()] || ["se impuso con maestría legendaria en el combate"];
+    const accionMitica = listaFrases[Math.floor(Math.random() * listaFrases.length)];
+
+    if (esSacrificio && salvador) {
+        return `<div style="margin-bottom: 10px; padding: 10px; border-left: 4px solid #ff88ff; background: rgba(255, 136, 255, 0.08); border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">
+            <strong style="color: #ff88ff; text-transform: uppercase;">❖ ${attr} - Sacrificio de Amor</strong><br>
+            <em>${pPerdedor.nombre}</em> sucumbía ante el dominio de <em>${pGanador.nombre}</em> (${valGanador} vs ${valPerdedor}). Sin embargo, <strong style="color: #ffd700;">${salvador.nombre}</strong> interpuso su cuerpo en un acto heroico, sacrificando su vida y su existencia por su amor y absorber todo el daño. <em>${pPerdedor.nombre}</em> sigue en batalla. 
+        </div>`;
+    }
+
+    return `<div style="margin-bottom: 10px; padding: 10px; border-left: 4px solid #d4af37; background: rgba(212, 175, 55, 0.08); border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">
+        <strong style="color: #d4af37; text-transform: uppercase;">⚔ ${attr}</strong><br>
+        En un choque de <strong>${attr.toUpperCase()}</strong>, <em>${pGanador.nombre}</em> (${valGanador} pts) ${accionMitica} frente a <em>${pPerdedor.nombre}</em> (${valPerdedor} pts). 
+        La victoria fue para <strong style="color: #88ff88;">${pGanador.nombre}</strong> (conserva ${puntosRestantes} pts), expulsando a <strong>${pPerdedor.nombre}</strong> del campo de batalla.
+    </div>`;
 }
+
 function ejecutarDuelo() {
     const btnDuelo = document.getElementById("btn-iniciar-duelo");
     btnDuelo.classList.add("brillando");
     
     asignarRivalAleatorio();
 
-    if (typeof tarjetasGuardadas !== 'undefined') {
+   if (typeof tarjetasGuardadas !== 'undefined') {
         ATRIBUTOS.forEach(attr => {
             let idxUsuario = asignacionesUsuario[attr];
             if (idxUsuario !== undefined && manoUsuario[idxUsuario] && manoRival) {
                 let pUsuario = manoUsuario[idxUsuario];
+                if (!pUsuario) return;
                 
                 let tarjetaOdioUsu = tarjetasGuardadas.find(t => t.tipo === "Odio" && t.propietarioId === pUsuario.id);
-                if (tarjetaOdioUsu && manoRival.some(r => tarjetaOdioUsu.vinculadosIds.includes(r.id))) {
-                    let idxRivalCorrecto = manoRival.findIndex(r => tarjetaOdioUsu.vinculadosIds.includes(r.id));
-                    let attrRival = Object.keys(asignacionesRival).find(k => asignacionesRival[k] === idxRivalCorrecto);
-                    if (attrRival && attrRival !== attr) {
-                        let temp = asignacionesRival[attr];
-                        asignacionesRival[attr] = idxRivalCorrecto;
-                        asignacionesRival[attrRival] = temp;
+                if (tarjetaOdioUsu && tarjetaOdioUsu.vinculadosIds) {
+                    let vincs = Array.isArray(tarjetaOdioUsu.vinculadosIds) ? tarjetaOdioUsu.vinculadosIds : [tarjetaOdioUsu.vinculadosIds];
+                    if (manoRival.some(r => r && r.id && vincs.includes(r.id))) {
+                        let idxRivalCorrecto = manoRival.findIndex(r => r && r.id && vincs.includes(r.id));
+                        let attrRival = Object.keys(asignacionesRival).find(k => asignacionesRival[k] === idxRivalCorrecto);
+                        if (attrRival && attrRival !== attr) {
+                            let temp = asignacionesRival[attr];
+                            asignacionesRival[attr] = idxRivalCorrecto;
+                            asignacionesRival[attrRival] = temp;
+                        }
                     }
                 }
                 
-                let rivalQueOdia = manoRival.find(r => tarjetasGuardadas.some(t => t.tipo === "Odio" && t.propietarioId === r.id && t.vinculadosIds.includes(pUsuario.id)));
+                let rivalQueOdia = manoRival.find(r => r && r.id && tarjetasGuardadas.some(t => {
+                    if (t.tipo !== "Odio" || t.propietarioId !== r.id || !t.vinculadosIds) return false;
+                    let vincs = Array.isArray(t.vinculadosIds) ? t.vinculadosIds : [t.vinculadosIds];
+                    return vincs.includes(pUsuario.id);
+                }));
                 if (rivalQueOdia) {
-                    let idxRivalCorrecto = manoRival.findIndex(r => r.id === rivalQueOdia.id);
+                    let idxRivalCorrecto = manoRival.findIndex(r => r && r.id === rivalQueOdia.id);
                     let attrRival = Object.keys(asignacionesRival).find(k => asignacionesRival[k] === idxRivalCorrecto);
                     if (attrRival && attrRival !== attr) {
                         let temp = asignacionesRival[attr];
@@ -1063,7 +1383,6 @@ function ejecutarDuelo() {
             }
         });
     }
-    
     setTimeout(() => {
         let cartasAEliminarUsuario = [];
         let cartasAEliminarRival = [];
@@ -1104,6 +1423,8 @@ function ejecutarDuelo() {
             let pUsuario = manoUsuario[idxUsuario];
             let pRival = manoRival[idxRival];
             
+            if (!pUsuario || !pRival) return;
+            
             if (estadisticasBatallaPrincipales[pUsuario.id]) {
                 estadisticasBatallaPrincipales[pUsuario.id].duelos = (estadisticasBatallaPrincipales[pUsuario.id].duelos || 0) + 1;
             }
@@ -1121,49 +1442,64 @@ function ejecutarDuelo() {
                     ((t.propietarioId === pUsuario.id && t.vinculadosIds.includes(pRival.id)) || 
                      (t.propietarioId === pRival.id && t.vinculadosIds.includes(pUsuario.id)))
                 );
-                
-                let amaARival = tarjetasGuardadas.some(t => t.tipo === "Amor" && t.propietarioId === pUsuario.id && t.vinculadosIds.includes(pRival.id));
-                if (amaARival) valUsuario = 0;
-                
-                let rivalAmaAUsuario = tarjetasGuardadas.some(t => t.tipo === "Amor" && t.propietarioId === pRival.id && t.vinculadosIds.includes(pUsuario.id));
-                if (rivalAmaAUsuario) valRival = 0;
             }
             
             let ganador, perdedor, puntosRestantes;
             
             if (!sonPareja && valUsuario > valRival) {
-                let salvadorIdx = manoRival.findIndex(r => tarjetasGuardadas.some(t => t.tipo === "Amor" && t.propietarioId === r.id && t.vinculadosIds.includes(pRival.id)));
-                if (salvadorIdx !== -1) {
-                    cartasAEliminarRival.push(salvadorIdx);
-                    historialRonda += `<p style="margin-bottom: 8px; color: #ff88ff;"><strong>SACRIFICIO POR AMOR:</strong> ${pRival.nombre} iba a ser eliminado en la categoría ${attr.toUpperCase()}, pero ${manoRival[salvadorIdx].nombre} se descartó en su lugar para salvarlo.</p>`;
-                } else {
-                    cartasAEliminarRival.push(idxRival);
-                }
-                
+                let salvadorIdx = manoRival.findIndex((r, i) => 
+                    !cartasAEliminarRival.includes(i) && 
+                    r.id !== pRival.id && 
+                    tarjetasGuardadas.some(t => 
+                        t.tipo === "Amor" && 
+                        t.propietarioId === r.id && 
+                        ((Array.isArray(t.vinculadosIds) && t.vinculadosIds.includes(pRival.id)) || t.vinculadosIds === pRival.id)
+                    )
+                );
+
                 puntosRestantes = calcularYAsignarDaño(pUsuario, attr, valUsuario, valRival);
                 ganador = pUsuario.nombre;
-                perdedor = pRival.nombre;
-                
+if (salvadorIdx !== -1) {
+                    cartasAEliminarRival.push(salvadorIdx);
+                    let salvador = manoRival[salvadorIdx];
+                    historialRonda += generarLeyendaMitica(pUsuario, pRival, attr, valUsuario, valRival, puntosRestantes, true, salvador);
+                } else {
+                    cartasAEliminarRival.push(idxRival);
+                    perdedor = pRival.nombre;
+                    historialRonda += generarLeyendaMitica(pUsuario, pRival, attr, valUsuario, valRival, puntosRestantes, false, null);
+                }
+
                 if (estadisticasBatallaPrincipales[pUsuario.id]) {
                     estadisticasBatallaPrincipales[pUsuario.id].historialDuelos.push(true);
                 }
-historialRonda += `<p style="margin-bottom: 8px;"><strong>${attr.toUpperCase()}:</strong> ${pUsuario.nombre} con ${valUsuario} puntos se enfrentó a ${pRival.nombre} con ${valRival} puntos. El ganador fue ${ganador} y quedó con ${puntosRestantes} puntos de ${attr}. El personaje ${perdedor} quedó eliminado de la batalla.</p>`;            } else if (!sonPareja && valRival > valUsuario) {
-                let salvadorIdx = manoUsuario.findIndex(u => tarjetasGuardadas.some(t => t.tipo === "Amor" && t.propietarioId === u.id && t.vinculadosIds.includes(pUsuario.id)));
-                if (salvadorIdx !== -1) {
-                    cartasAEliminarUsuario.push(salvadorIdx);
-                    historialRonda += `<p style="margin-bottom: 8px; color: #ff88ff;"><strong>SACRIFICIO POR AMOR:</strong> ${pUsuario.nombre} iba a ser eliminado en la categoría ${attr.toUpperCase()}, pero ${manoUsuario[salvadorIdx].nombre} se descartó en su lugar para salvarlo.</p>`;
-                } else {
-                    cartasAEliminarUsuario.push(idxUsuario);
-                }
+            } else if (!sonPareja && valRival > valUsuario) {
+                let salvadorIdx = manoUsuario.findIndex((u, i) => 
+                    !cartasAEliminarUsuario.includes(i) && 
+                    u.id !== pUsuario.id && 
+                    tarjetasGuardadas.some(t => 
+                        t.tipo === "Amor" && 
+                        t.propietarioId === u.id && 
+                        ((Array.isArray(t.vinculadosIds) && t.vinculadosIds.includes(pUsuario.id)) || t.vinculadosIds === pUsuario.id)
+                    )
+                );
 
                 puntosRestantes = calcularYAsignarDaño(pRival, attr, valRival, valUsuario);
                 ganador = pRival.nombre;
-                perdedor = pUsuario.nombre;
-                
+
+                if (salvadorIdx !== -1) {
+                    cartasAEliminarUsuario.push(salvadorIdx);
+                    let salvador = manoUsuario[salvadorIdx];
+                    historialRonda += generarLeyendaMitica(pRival, pUsuario, attr, valRival, valUsuario, puntosRestantes, true, salvador);
+                } else {
+                    cartasAEliminarUsuario.push(idxUsuario);
+                    perdedor = pUsuario.nombre;
+                    historialRonda += generarLeyendaMitica(pRival, pUsuario, attr, valRival, valUsuario, puntosRestantes, false, null);
+                }
+
                 if (estadisticasBatallaPrincipales[pUsuario.id]) {
                     estadisticasBatallaPrincipales[pUsuario.id].historialDuelos.push(false);
                 }
-historialRonda += `<p style="margin-bottom: 8px;"><strong>${attr.toUpperCase()}:</strong> ${pUsuario.nombre} con ${valUsuario} puntos se enfrentó a ${pRival.nombre} con ${valRival} puntos. El ganador fue ${ganador} y quedó con ${puntosRestantes} puntos de ${attr}. El personaje ${perdedor} quedó eliminado de la batalla.</p>`;            } else {
+            } else {
                 let ptsUsu = calcularYAsignarDaño(pUsuario, attr, valUsuario, Math.round(valUsuario / 2));
                 let ptsRiv = calcularYAsignarDaño(pRival, attr, valRival, Math.round(valRival / 2));
                 
@@ -1387,926 +1723,89 @@ function abrirModalTarjetaHistoria(idPersonaje) {
 function cerrarModalTarjetaHistoria() {
     document.getElementById("modal-tarjeta-historia").style.display = "none";
 }
-function abrirFormularioArma() {
+function abrirFormularioArma() { abrirFormularioEquipamiento('Arma'); }
+function abrirFormularioArmadura() { abrirFormularioEquipamiento('Armadura'); }
+function abrirFormularioReliquia() { abrirFormularioEquipamiento('Reliquia'); }
+function abrirFormularioMontura() { abrirFormularioEquipamiento('Montura'); }
+function abrirFormularioConocimiento() { abrirFormularioEquipamiento('Conocimiento'); }
+
+function abrirFormularioEquipamiento(tipo) {
     document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-arma").style.display = "block";
-    document.getElementById("lista-efectos-arma").innerHTML = "";
-    document.getElementById("lista-excepciones-arma").innerHTML = "";
-    document.getElementById("arma-nombre").value = "";
-    document.getElementById("arma-descripcion").value = "";
+    document.getElementById("titulo-formulario-equipamiento").innerText = `CREAR TARJETA: ${tipo.toUpperCase()}`;
+    document.getElementById("tipo-tarjeta-equipamiento").value = tipo;
+    document.getElementById("nombre-tarjeta-equipamiento").value = "";
+    document.getElementById("descripcion-tarjeta-equipamiento").value = "";
+    document.getElementById("puntos-tarjeta-equipamiento").value = 0;
+    document.getElementById("modal-formulario-equipamiento").style.display = "block";
 }
 
-function cerrarFormularioArma() {
-    document.getElementById("modal-formulario-arma").style.display = "none";
+function cerrarFormularioEquipamiento() {
+    document.getElementById("modal-formulario-equipamiento").style.display = "none";
 }
-
-let contadorEfectosArma = 0;
-function agregarEfectoArma() {
-    contadorEfectosArma++;
-    const div = document.createElement("div");
-    div.className = "item-efecto";
-    div.innerHTML = `
-        <select class="efecto-atributo">
-            <option value="fuerza">Fuerza</option>
-            <option value="inteligencia">Inteligencia</option>
-            <option value="magia">Magia</option>
-            <option value="velocidad">Velocidad</option>
-            <option value="defensa">Defensa</option>
-        </select>
-        <input type="number" class="efecto-valor" placeholder="+/- Puntos">
-        <button type="button" onclick="this.parentElement.remove()">X</button>
-    `;
-    document.getElementById("lista-efectos-arma").appendChild(div);
-}
-
-let contadorExcepcionesArma = 0;
-function agregarExcepcionArma() {
-    contadorExcepcionesArma++;
-    const tiposDisponibles = [...new Set(personajes.flatMap(p => (p.tipo || "").split(',').map(t => t.trim())))];
-    
-    const div = document.createElement("div");
-    div.className = "item-excepcion";
-    
-    let opcionesTipos = `<option value="">Selecciona un Tipo</option>` + tiposDisponibles.map(t => `<option value="${t}">${t}</option>`).join('');
-    
-    div.innerHTML = `
-        <select class="exc-tipo" onchange="actualizarPersonajesExcepcion(this, ${contadorExcepcionesArma})">
-            ${opcionesTipos}
-        </select>
-        <select class="exc-personaje" id="exc-pers-${contadorExcepcionesArma}">
-            <option value="">Aplicar a todos del tipo</option>
-        </select>
-        <select class="exc-condicion" onchange="actualizarInputCondicion(this, ${contadorExcepcionesArma})">
-            <option value="Inmune">Inmune</option>
-            <option value="Destino">Destino</option>
-            <option value="Aumento">Aumento</option>
-            <option value="Debilidad">Debilidad</option>
-        </select>
-        <span id="exc-val-container-${contadorExcepcionesArma}" style="display:none;">
-            <input type="number" class="exc-porcentaje" placeholder="%">
-        </span>
-        <button type="button" onclick="this.parentElement.remove()">X</button>
-    `;
-    document.getElementById("lista-excepciones-arma").appendChild(div);
-}
-
-function actualizarPersonajesExcepcion(selectTipo, id) {
-    const tipoSel = selectTipo.value;
-    const selectPers = document.getElementById(`exc-pers-${id}`);
-    selectPers.innerHTML = `<option value="">Aplicar a todos del tipo</option>`;
-    if (tipoSel) {
-        const persFiltrados = personajes.filter(p => (p.tipo || "").includes(tipoSel));
-        persFiltrados.forEach(p => {
-            selectPers.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
-        });
-    }
-}
-
-function actualizarInputCondicion(selectCond, id) {
-    const valCont = document.getElementById(`exc-val-container-${id}`);
-    if (selectCond.value === "Aumento" || selectCond.value === "Debilidad") {
-        valCont.style.display = "inline-block";
-    } else {
-        valCont.style.display = "none";
-        valCont.querySelector('.exc-porcentaje').value = "";
-    }
-}
-
-async function guardarTarjetaArma() {
-    const nombre = document.getElementById("arma-nombre").value;
-    const desc = document.getElementById("arma-descripcion").value;
-    
-    if (!nombre) { alert("¡Debe incluir un nombre para el Arma!"); return; }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const rutaImagen = `Tarjetas/${nombreLimpio}.jpg`;
-    
-    const efectos = Array.from(document.getElementById("lista-efectos-arma").children).map(div => ({
-        atributo: div.querySelector('.efecto-atributo').value,
-        modificacion: parseInt(div.querySelector('.efecto-valor').value) || 0
-    }));
-    
-    const excepciones = Array.from(document.getElementById("lista-excepciones-arma").children).map(div => ({
-        tipo: div.querySelector('.exc-tipo').value,
-        personajeId: div.querySelector('.exc-personaje').value,
-        condicion: div.querySelector('.exc-condicion').value,
-        porcentaje: parseInt(div.querySelector('.exc-porcentaje')?.value) || 0
-    }));
-    
-    const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: "Arma",
-        propietarioId: idPropietarioTarjetaActual,
-        nombre: nombre,
-        descripcion: desc,
-        imagen: rutaImagen,
-        efectos: efectos,
-        excepciones: excepciones
-    };
-    
-    let tarjetasRegistradas = [];
-    try {
-        const respuesta = await fetch("tarjeta.json");
-        if (respuesta.ok) {
-            tarjetasRegistradas = await respuesta.json();
-        }
-    } catch(error) {
-        console.warn("No se encontró tarjeta.json previo, se generará uno nuevo.");
-    }
-    
-    tarjetasRegistradas.push(nuevaTarjeta);
-    
-    const blob = new Blob([JSON.stringify(tarjetasRegistradas, null, 4)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tarjeta.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    cerrarFormularioArma();
-    alert("¡Tarjeta guardada y descargada exitosamente!");
-    abrirEditorHistoria();
-}
-function abrirFormularioConsumible() {
-    document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-consumible").style.display = "block";
-    document.getElementById("lista-efectos-consumible").innerHTML = "";
-    document.getElementById("consumible-nombre").value = "";
-    document.getElementById("consumible-descripcion").value = "";
-    document.getElementById("consumible-turnos").value = "";
-}
-
-function cerrarFormularioConsumible() {
-    document.getElementById("modal-formulario-consumible").style.display = "none";
-}
-
-let contadorEfectosConsumible = 0;
-function agregarEfectoConsumible() {
-    contadorEfectosConsumible++;
-    const div = document.createElement("div");
-    div.className = "item-efecto";
-    div.innerHTML = `
-        <select class="efecto-atributo">
-            <option value="fuerza">Fuerza</option>
-            <option value="inteligencia">Inteligencia</option>
-            <option value="magia">Magia</option>
-            <option value="velocidad">Velocidad</option>
-            <option value="defensa">Defensa</option>
-        </select>
-        <input type="number" class="efecto-valor" placeholder="+/- Puntos">
-        <button type="button" onclick="this.parentElement.remove()">X</button>
-    `;
-    document.getElementById("lista-efectos-consumible").appendChild(div);
-}
-
-async function guardarTarjetaConsumible() {
-    const nombre = document.getElementById("consumible-nombre").value;
-    const desc = document.getElementById("consumible-descripcion").value;
-    const turnos = parseInt(document.getElementById("consumible-turnos").value);
-    
-    if (!nombre) { alert("¡Debe incluir un nombre para el Consumible!"); return; }
-    if (isNaN(turnos) || turnos < 1 || turnos > 3) { alert("¡El tiempo del efecto debe ser un número entre 1 y 3!"); return; }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const rutaImagen = `Tarjetas/${nombreLimpio}.jpg`;
-    
-    const efectos = Array.from(document.getElementById("lista-efectos-consumible").children).map(div => ({
-        atributo: div.querySelector('.efecto-atributo').value,
-        modificacion: parseInt(div.querySelector('.efecto-valor').value) || 0
-    }));
-    
-    const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: "Consumible",
-        propietarioId: idPropietarioTarjetaActual,
-        nombre: nombre,
-        descripcion: desc,
-        imagen: rutaImagen,
-        turnos: turnos,
-        efectos: efectos
-    };
-    
-    let tarjetasRegistradas = [];
-    try {
-        const respuesta = await fetch("tarjeta.json");
-        if (respuesta.ok) {
-            tarjetasRegistradas = await respuesta.json();
-        }
-    } catch(error) {
-        console.warn("No se encontró tarjeta.json previo, se generará uno nuevo.");
-    }
-    
-    tarjetasRegistradas.push(nuevaTarjeta);
-    
-    const blob = new Blob([JSON.stringify(tarjetasRegistradas, null, 4)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tarjeta.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    cerrarFormularioConsumible();
-    alert("¡Tarjeta Consumible guardada y descargada exitosamente!");
-    abrirEditorHistoria();
-}
-function abrirFormularioArmadura() {
-    document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-armadura").style.display = "block";
-    document.getElementById("lista-efectos-armadura").innerHTML = "";
-    document.getElementById("lista-excepciones-armadura").innerHTML = "";
-    document.getElementById("armadura-nombre").value = "";
-    document.getElementById("armadura-descripcion").value = "";
-    contadorEfectosArmadura = 0;
-    contadorExcepcionesArmadura = 0;
-    agregarEfectoArmadura(true);
-}
-
-function cerrarFormularioArmadura() {
-    document.getElementById("modal-formulario-armadura").style.display = "none";
-}
-
-let contadorEfectosArmadura = 0;
-function agregarEfectoArmadura(esPrincipal = false) {
-    contadorEfectosArmadura++;
-    const div = document.createElement("div");
-    div.className = "item-efecto";
-    
-    if (esPrincipal === true) {
-        div.innerHTML = `
-            <select class="efecto-atributo" disabled style="opacity: 1; -webkit-text-fill-color: white;">
-                <option value="defensa" selected>Defensa</option>
-            </select>
-            <input type="number" class="efecto-valor" placeholder="+ Puntos" min="1">
-            <button type="button" style="visibility: hidden;">X</button>
-        `;
-    } else {
-        div.innerHTML = `
-            <select class="efecto-atributo">
-                <option value="fuerza">Fuerza</option>
-                <option value="inteligencia">Inteligencia</option>
-                <option value="magia">Magia</option>
-                <option value="velocidad">Velocidad</option>
-            </select>
-            <input type="number" class="efecto-valor" placeholder="- Puntos" max="-1" onchange="if(this.value >= 0) { alert('El valor debe ser negativo'); this.value = -1; }">
-            <button type="button" onclick="this.parentElement.remove()">X</button>
-        `;
-    }
-    document.getElementById("lista-efectos-armadura").appendChild(div);
-}
-
-let contadorExcepcionesArmadura = 0;
-function agregarExcepcionArmadura() {
-    contadorExcepcionesArmadura++;
-    const tiposDisponibles = [...new Set(personajes.flatMap(p => (p.tipo || "").split(',').map(t => t.trim())))];
-    
-    const div = document.createElement("div");
-    div.className = "item-excepcion";
-    
-    let opcionesTipos = `<option value="">Selecciona un Tipo</option>` + tiposDisponibles.map(t => `<option value="${t}">${t}</option>`).join('');
-    
-    div.innerHTML = `
-        <select class="exc-tipo" onchange="actualizarPersonajesExcepcion(this, 'armadura-${contadorExcepcionesArmadura}')">
-            ${opcionesTipos}
-        </select>
-        <select class="exc-personaje" id="exc-pers-armadura-${contadorExcepcionesArmadura}">
-            <option value="">Aplicar a todos del tipo</option>
-        </select>
-        <select class="exc-condicion" onchange="actualizarInputCondicion(this, 'armadura-${contadorExcepcionesArmadura}')">
-            <option value="Inmune">Inmune</option>
-            <option value="Destino">Destino</option>
-            <option value="Aumento">Aumento</option>
-            <option value="Debilidad">Debilidad</option>
-        </select>
-        <span id="exc-val-container-armadura-${contadorExcepcionesArmadura}" style="display:none;">
-            <input type="number" class="exc-porcentaje" placeholder="%">
-        </span>
-        <button type="button" onclick="this.parentElement.remove()">X</button>
-    `;
-    document.getElementById("lista-excepciones-armadura").appendChild(div);
-}
-
-async function guardarTarjetaArmadura() {
-    const nombre = document.getElementById("armadura-nombre").value;
-    const desc = document.getElementById("armadura-descripcion").value;
-    
-    if (!nombre) { alert("¡Debe incluir un nombre para la Armadura!"); return; }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const rutaImagen = `Tarjetas/${nombreLimpio}.jpg`;
-    
-    const efectos = Array.from(document.getElementById("lista-efectos-armadura").children).map(div => {
-        const select = div.querySelector('.efecto-atributo');
-        const atributo = select.disabled ? "defensa" : select.value;
-        const valorEfecto = div.querySelector('.efecto-valor').value.trim();
-        let modificacion = parseInt(valorEfecto) || 0;
-        
-        if (atributo !== "defensa" && valorEfecto === "") {
-            return null;
-        }
-        
-        if (atributo !== "defensa" && modificacion > 0) {
-            modificacion = -modificacion;
-        }
-        
-        return {
-            atributo: atributo,
-            modificacion: modificacion
-        };
-    }).filter(efecto => efecto !== null);
-    
-    const tieneEfectosSecundariosInvalidos = efectos.some(efecto => efecto.atributo !== "defensa" && efecto.modificacion >= 0);
-    if (tieneEfectosSecundariosInvalidos) {
-        alert("Los efectos secundarios deben ser negativos.");
-        return;
-    }
-    
-    const efectoDefensa = efectos.find(efecto => efecto.atributo === "defensa");
-    if (!efectoDefensa || efectoDefensa.modificacion <= 0) {
-        alert("La Armadura debe aumentar Defensa con un valor positivo.");
-        return;
-    }
-    
-    const excepciones = Array.from(document.getElementById("lista-excepciones-armadura").children).map(div => ({
-        tipo: div.querySelector('.exc-tipo').value,
-        personajeId: div.querySelector('.exc-personaje').value,
-        condicion: div.querySelector('.exc-condicion').value,
-        porcentaje: parseInt(div.querySelector('.exc-porcentaje')?.value) || 0
-    }));
-    
-    const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: "Armadura",
-        propietarioId: idPropietarioTarjetaActual,
-        nombre: nombre,
-        descripcion: desc,
-        imagen: rutaImagen,
-        efectos: efectos,
-        excepciones: excepciones
-    };
-    
-    let tarjetasRegistradas = [];
-    try {
-        const respuesta = await fetch("tarjeta.json");
-        if (respuesta.ok) {
-            tarjetasRegistradas = await respuesta.json();
-        }
-    } catch(error) {
-        console.warn("No se encontró tarjeta.json previo, se generará uno nuevo.");
-    }
-    
-    tarjetasRegistradas.push(nuevaTarjeta);
-    
-    const blob = new Blob([JSON.stringify(tarjetasRegistradas, null, 4)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tarjeta.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    cerrarFormularioArmadura();
-    alert("¡Tarjeta guardada y descargada exitosamente!");
-    abrirEditorHistoria();
-}
-function abrirFormularioReliquia() {
-    document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-reliquia").style.display = "block";
-    document.getElementById("lista-efectos-reliquia").innerHTML = "";
-    document.getElementById("lista-excepciones-reliquia").innerHTML = "";
-    document.getElementById("reliquia-nombre").value = "";
-    document.getElementById("reliquia-descripcion").value = "";
-}
-
-function cerrarFormularioReliquia() {
-    document.getElementById("modal-formulario-reliquia").style.display = "none";
-}
-
-let contadorEfectosReliquia = 0;
-function agregarEfectoReliquia() {
-    contadorEfectosReliquia++;
-    const div = document.createElement("div");
-    div.className = "item-efecto";
-    div.innerHTML = `
-        <select class="efecto-atributo">
-            <option value="fuerza">Fuerza</option>
-            <option value="inteligencia">Inteligencia</option>
-            <option value="magia">Magia</option>
-            <option value="velocidad">Velocidad</option>
-            <option value="defensa">Defensa</option>
-        </select>
-        <input type="number" class="efecto-valor" placeholder="+/- Puntos">
-        <button type="button" onclick="this.parentElement.remove()">X</button>
-    `;
-    document.getElementById("lista-efectos-reliquia").appendChild(div);
-}
-
-let contadorExcepcionesReliquia = 0;
-function agregarExcepcionReliquia() {
-    contadorExcepcionesReliquia++;
-    const tiposDisponibles = [...new Set(personajes.flatMap(p => (p.tipo || "").split(',').map(t => t.trim())))];
-    
-    const div = document.createElement("div");
-    div.className = "item-excepcion";
-    
-    let opcionesTipos = `<option value="">Selecciona un Tipo</option>` + tiposDisponibles.map(t => `<option value="${t}">${t}</option>`).join('');
-    
-    div.innerHTML = `
-        <select class="exc-tipo" onchange="actualizarPersonajesExcepcion(this, 'reliquia-${contadorExcepcionesReliquia}')">
-            ${opcionesTipos}
-        </select>
-        <select class="exc-personaje" id="exc-pers-reliquia-${contadorExcepcionesReliquia}">
-            <option value="">Aplicar a todos del tipo</option>
-        </select>
-        <select class="exc-condicion" onchange="actualizarInputCondicion(this, 'reliquia-${contadorExcepcionesReliquia}')">
-            <option value="Inmune">Inmune</option>
-            <option value="Destino">Destino</option>
-            <option value="Aumento">Aumento</option>
-            <option value="Debilidad">Debilidad</option>
-        </select>
-        <span id="exc-val-container-reliquia-${contadorExcepcionesReliquia}" style="display:none;">
-            <input type="number" class="exc-porcentaje" placeholder="%">
-        </span>
-        <button type="button" onclick="this.parentElement.remove()">X</button>
-    `;
-    document.getElementById("lista-excepciones-reliquia").appendChild(div);
-}
-
-async function guardarTarjetaReliquia() {
-    const nombre = document.getElementById("reliquia-nombre").value;
-    const desc = document.getElementById("reliquia-descripcion").value;
-    
-    if (!nombre) { alert("¡Debe incluir un nombre para la Reliquia!"); return; }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const rutaImagen = `Tarjetas/${nombreLimpio}.jpg`;
-    
-    const efectos = Array.from(document.getElementById("lista-efectos-reliquia").children).map(div => ({
-        atributo: div.querySelector('.efecto-atributo').value,
-        modificacion: parseInt(div.querySelector('.efecto-valor').value) || 0
-    }));
-    
-    const excepciones = Array.from(document.getElementById("lista-excepciones-reliquia").children).map(div => ({
-        tipo: div.querySelector('.exc-tipo').value,
-        personajeId: div.querySelector('.exc-personaje').value,
-        condicion: div.querySelector('.exc-condicion').value,
-        porcentaje: parseInt(div.querySelector('.exc-porcentaje')?.value) || 0
-    }));
-    
-    const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: "Reliquia",
-        propietarioId: idPropietarioTarjetaActual,
-        nombre: nombre,
-        descripcion: desc,
-        imagen: rutaImagen,
-        efectos: efectos,
-        excepciones: excepciones
-    };
-    
-    let tarjetasRegistradas = [];
-    try {
-        const respuesta = await fetch("tarjeta.json");
-        if (respuesta.ok) {
-            tarjetasRegistradas = await respuesta.json();
-        }
-    } catch(error) {
-        console.warn("No se encontró tarjeta.json previo, se generará uno nuevo.");
-    }
-    
-    tarjetasRegistradas.push(nuevaTarjeta);
-    
-    const blob = new Blob([JSON.stringify(tarjetasRegistradas, null, 4)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tarjeta.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    cerrarFormularioReliquia();
-    alert("¡Tarjeta guardada y descargada exitosamente!");
-    abrirEditorHistoria();
-}
-
-function abrirFormularioMontura() {
-    document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-montura").style.display = "block";
-    document.getElementById("lista-efectos-montura").innerHTML = "";
-    document.getElementById("lista-excepciones-montura").innerHTML = "";
-    document.getElementById("montura-nombre").value = "";
-    document.getElementById("montura-descripcion").value = "";
-    contadorEfectosMontura = 0;
-    contadorExcepcionesMontura = 0;
-    agregarEfectoMontura(true);
-}
-
-function cerrarFormularioMontura() {
-    document.getElementById("modal-formulario-montura").style.display = "none";
-}
-
-let contadorEfectosMontura = 0;
-function agregarEfectoMontura(esPrincipal = false) {
-    contadorEfectosMontura++;
-    const div = document.createElement("div");
-    div.className = "item-efecto";
-    
-    if (esPrincipal === true) {
-        div.innerHTML = `
-            <select class="efecto-atributo" disabled style="opacity: 1; -webkit-text-fill-color: white;">
-                <option value="velocidad" selected>Velocidad</option>
-            </select>
-            <input type="number" class="efecto-valor" placeholder="+ Puntos" min="1">
-            <button type="button" style="visibility: hidden;">X</button>
-        `;
-    } else {
-        div.innerHTML = `
-            <select class="efecto-atributo">
-                <option value="fuerza">Fuerza</option>
-                <option value="inteligencia">Inteligencia</option>
-                <option value="magia">Magia</option>
-                <option value="defensa">Defensa</option>
-            </select>
-            <input type="number" class="efecto-valor" placeholder="- Puntos" max="-1" onchange="if(this.value >= 0) { alert('El valor debe ser negativo'); this.value = -1; }">
-            <button type="button" onclick="this.parentElement.remove()">X</button>
-        `;
-    }
-    document.getElementById("lista-efectos-montura").appendChild(div);
-}
-async function guardarYDescargarGenerico(nuevaTarjeta, callbackCerrar, tipoNombre) {
-    let tarjetasRegistradas = [];
-    try {
-        const respuesta = await fetch("tarjeta.json");
-        if (respuesta.ok) {
-            tarjetasRegistradas = await respuesta.json();
-        }
-    } catch(error) {
-        console.warn("No se encontró tarjeta.json previo, se generará uno nuevo.");
-    }
-    
-    tarjetasRegistradas.push(nuevaTarjeta);
-    
-    const blob = new Blob([JSON.stringify(tarjetasRegistradas, null, 4)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tarjeta.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    callbackCerrar();
-    alert(`¡Tarjeta de ${tipoNombre} guardada y descargada exitosamente!`);
-    abrirEditorHistoria();
-}
-
-// FORMULARIO DE MIEDO
-function abrirFormularioMiedo() {
-    document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-miedo").style.display = "block";
-    document.getElementById("miedo-nombre").value = "";
-    document.getElementById("miedo-descripcion").value = "";
-    
-    const selectTipo = document.getElementById("miedo-tipo-afectado");
-    const tiposDisponibles = [...new Set(personajes.flatMap(p => (p.tipo || "").split(',').map(t => t.trim())))];
-    selectTipo.innerHTML = `<option value="">Selecciona un Tipo</option>` + tiposDisponibles.map(t => `<option value="${t}">${t}</option>`).join('');
-    actualizarPersonajesMiedo();
-}
-
-function cerrarFormularioMiedo() {
-    document.getElementById("modal-formulario-miedo").style.display = "none";
-}
-
-function actualizarPersonajesMiedo() {
-    const tipoSel = document.getElementById("miedo-tipo-afectado").value;
-    const selectPers = document.getElementById("miedo-personaje");
-    selectPers.innerHTML = `<option value="">Cualquiera del tipo seleccionado</option>`;
-    if (tipoSel) {
-        const persFiltrados = personajes.filter(p => (p.tipo || "").includes(tipoSel));
-        persFiltrados.forEach(p => {
-            selectPers.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
-        });
-    }
-}
-
-async function guardarTarjetaMiedo() {
-    const nombre = document.getElementById("miedo-nombre").value;
-    const desc = document.getElementById("miedo-descripcion").value;
-    const tipoAfectado = document.getElementById("miedo-tipo-afectado").value;
-    const personajeId = document.getElementById("miedo-personaje").value;
-    
-    if (!nombre) { alert("¡Debe incluir un nombre para la tarjeta de Miedo!"); return; }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: "Miedo",
-        propietarioId: idPropietarioTarjetaActual,
-        nombre: nombre,
-        descripcion: desc,
-        imagen: `Tarjetas/${nombreLimpio}.jpg`,
-        condicionRival: { tipo: tipoAfectado, personajeId: personajeId },
-        efectos: [{ atributo: "inteligencia", modificacion: 1, esFijo: true }] // La inteligencia baja a 1
-    };
-    
-    guardarYDescargarGenerico(nuevaTarjeta, cerrarFormularioMiedo, "Miedo");
-}
-
-// FORMULARIO DE DEBILIDAD
-let contadorCondicionesDebilidad = 0;
-function abrirFormularioDebilidad() {
-    document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-debilidad").style.display = "block";
-    document.getElementById("debilidad-nombre").value = "";
-    document.getElementById("debilidad-descripcion").value = "";
-    document.getElementById("lista-condiciones-debilidad").innerHTML = "";
-    document.getElementById("lista-efectos-debilidad").innerHTML = "";
-    contadorCondicionesDebilidad = 0;
-    agregarCondicionDebilidad();
-}
-
-function cerrarFormularioDebilidad() {
-    document.getElementById("modal-formulario-debilidad").style.display = "none";
-}
-
-function agregarCondicionDebilidad() {
-    contadorCondicionesDebilidad++;
-    const tiposDisponibles = [...new Set(personajes.flatMap(p => (p.tipo || "").split(',').map(t => t.trim())))];
-    const div = document.createElement("div");
-    div.className = "item-excepcion";
-    let opcionesTipos = `<option value="">Selecciona un Tipo</option>` + tiposDisponibles.map(t => `<option value="${t}">${t}</option>`).join('');
-    
-    div.innerHTML = `
-        <select class="exc-tipo" onchange="actualizarPersonajesExcepcion(this, 'debilidad-${contadorCondicionesDebilidad}')">
-            ${opcionesTipos}
-        </select>
-        <select class="exc-personaje" id="exc-pers-debilidad-${contadorCondicionesDebilidad}">
-            <option value="">Aplicar a todos del tipo</option>
-        </select>
-        <button type="button" onclick="this.parentElement.remove()">X</button>
-    `;
-    document.getElementById("lista-condiciones-debilidad").appendChild(div);
-}
-function abrirEditorHistoria() {
-    if (!idPropietarioTarjetaActual) return;
-    const personaje = personajes.find(p => p.id === idPropietarioTarjetaActual);
-    if (!personaje) return;
-    
-    document.getElementById("editor-historia-texto").value = personaje.historia || "";
-    document.getElementById("modal-editor-historia").style.display = "block";
-}
-
-function cerrarEditorHistoria() {
-    document.getElementById("modal-editor-historia").style.display = "none";
-}
-
-function guardarHistoriaPersonaje() {
-    if (!idPropietarioTarjetaActual) return;
-    const personaje = personajes.find(p => p.id === idPropietarioTarjetaActual);
-    if (!personaje) return;
-
-    personaje.historia = document.getElementById("editor-historia-texto").value;
-    personaje.duelos = 0;
-
-    const blob = new Blob([JSON.stringify(personajes, null, 4)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "personajes.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    cerrarEditorHistoria();
-    alert("¡Historia actualizada y contador de duelos reiniciado a 0!");
-    
-    // Refrescar vista
-    mostrarPersonajes(personajes);
-}
-function agregarEfectoDebilidad() {
-    const div = document.createElement("div");
-    div.className = "item-efecto";
-    div.innerHTML = `
-        <select class="efecto-atributo">
-            <option value="fuerza">Fuerza</option>
-            <option value="inteligencia">Inteligencia</option>
-            <option value="magia">Magia</option>
-            <option value="velocidad">Velocidad</option>
-            <option value="defensa">Defensa</option>
-        </select>
-        <input type="number" class="efecto-valor" placeholder="- Puntos a restar" min="1">
-        <button type="button" onclick="this.parentElement.remove()">X</button>
-    `;
-    document.getElementById("lista-efectos-debilidad").appendChild(div);
-}
-
-async function guardarTarjetaDebilidad() {
-    const nombre = document.getElementById("debilidad-nombre").value;
-    const desc = document.getElementById("debilidad-descripcion").value;
-    
-    if (!nombre) { alert("¡Debe incluir un nombre para la tarjeta de Debilidad!"); return; }
-    
-    const condiciones = Array.from(document.getElementById("lista-condiciones-debilidad").children).map(div => ({
-        tipo: div.querySelector('.exc-tipo').value,
-        personajeId: div.querySelector('.exc-personaje').value
-    }));
-
-    const efectos = Array.from(document.getElementById("lista-efectos-debilidad").children).map(div => ({
-        atributo: div.querySelector('.efecto-atributo').value,
-        modificacion: -(Math.abs(parseInt(div.querySelector('.efecto-valor').value) || 0)) // Aseguramos que reste
-    }));
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: "Debilidad",
-        propietarioId: idPropietarioTarjetaActual,
-        nombre: nombre,
-        descripcion: desc,
-        imagen: `Tarjetas/${nombreLimpio}.jpg`,
-        condicionesRival: condiciones,
-        efectos: efectos
-    };
-    
-    guardarYDescargarGenerico(nuevaTarjeta, cerrarFormularioDebilidad, "Debilidad");
-}
-
-// FORMULARIO DE INMUNIDAD
-function abrirFormularioInmunidad() {
-    document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-inmunidad").style.display = "block";
-    document.getElementById("inmunidad-nombre").value = "";
-    document.getElementById("inmunidad-descripcion").value = "";
-}
-
-function cerrarFormularioInmunidad() {
-    document.getElementById("modal-formulario-inmunidad").style.display = "none";
-}
-
-async function guardarTarjetaInmunidad() {
-    const nombre = document.getElementById("inmunidad-nombre").value;
-    const desc = document.getElementById("inmunidad-descripcion").value;
-    if (!nombre) { alert("¡Debe incluir un nombre para la tarjeta de Inmunidad!"); return; }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: "Inmunidad",
-        propietarioId: idPropietarioTarjetaActual,
-        nombre: nombre,
-        descripcion: desc,
-        imagen: `Tarjetas/${nombreLimpio}.jpg`,
-        efectoEspecial: "Anula todos los efectos de tarjetas del rival en duelo"
-    };
-    
-    guardarYDescargarGenerico(nuevaTarjeta, cerrarFormularioInmunidad, "Inmunidad");
-}
-
-// FORMULARIO DE MUTACIÓN
 function abrirFormularioMutacion() {
     document.getElementById("modal-tarjeta-historia").style.display = "none";
+    document.getElementById("nombre-tarjeta-mutacion").value = "Mutación de Atributos";
+    document.getElementById("descripcion-tarjeta-mutacion").value = "Establece nuevos valores base de combate para el personaje.";
+    
+    const personaje = personajes.find(p => p.id === idPropietarioTarjetaActual);
+    const stats = personaje ? (personaje.atributos || {}) : { fuerza: 0, inteligencia: 0, velocidad: 0, magia: 0, defensa: 0 };
+    
+    const listaAtributos = ["fuerza", "inteligencia", "velocidad", "magia", "defensa"];
+    const contenedor = document.getElementById("contenedor-atributos-mutacion");
+    
+    if (contenedor) {
+        contenedor.innerHTML = listaAtributos.map(attr => `
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #2b2b2b; padding: 8px 12px; border-radius: 4px; border: 1px solid #4a3621;">
+                <label style="color: #ffcc00; font-weight: bold; text-transform: uppercase;">${attr}:</label>
+                <input type="number" id="mutacion-val-${attr}" value="${stats[attr] ?? 0}" min="0" style="width: 80px; padding: 5px; background: #1a1a1a; color: white; border: 1px solid #4a3621; border-radius: 4px; text-align: center;">
+            </div>
+        `).join("");
+    }
+
     document.getElementById("modal-formulario-mutacion").style.display = "block";
-    document.getElementById("mutacion-nombre").value = "";
-    document.getElementById("mutacion-descripcion").value = "";
 }
 
 function cerrarFormularioMutacion() {
     document.getElementById("modal-formulario-mutacion").style.display = "none";
 }
 
-async function guardarTarjetaMutacion() {
-    const nombre = document.getElementById("mutacion-nombre").value;
-    const desc = document.getElementById("mutacion-descripcion").value;
-    if (!nombre) { alert("¡Debe incluir un nombre para la tarjeta de Mutación!"); return; }
+function guardarTarjetaMutacion() {
+    const nombre = document.getElementById("nombre-tarjeta-mutacion").value || "Mutación";
+    const descripcion = document.getElementById("descripcion-tarjeta-mutacion").value || "Establece nuevos valores base de combate.";
     
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
+    const nuevosAtributos = {
+        fuerza: parseInt(document.getElementById("mutacion-val-fuerza")?.value) || 0,
+        inteligencia: parseInt(document.getElementById("mutacion-val-inteligencia")?.value) || 0,
+        velocidad: parseInt(document.getElementById("mutacion-val-velocidad")?.value) || 0,
+        magia: parseInt(document.getElementById("mutacion-val-magia")?.value) || 0,
+        defensa: parseInt(document.getElementById("mutacion-val-defensa")?.value) || 0
+    };
+
     const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
+        idTarjeta: "tarjeta_" + Date.now(),
+        propietarioId: idPropietarioTarjetaActual,
         tipo: "Mutación",
-        propietarioId: idPropietarioTarjetaActual,
         nombre: nombre,
-        descripcion: desc,
-        imagen: `Tarjetas/${nombreLimpio}.jpg`,
-        efectoEspecial: "Suma todos los puntos de todos sus atributos y permite redistribuirlos a gusto"
+        descripcion: descripcion,
+        nuevosAtributosBase: nuevosAtributos,
+        efectos: Object.keys(nuevosAtributos).map(attr => ({
+            atributo: attr,
+            modificacion: nuevosAtributos[attr]
+        })),
+        excepciones: []
     };
-    
-    guardarYDescargarGenerico(nuevaTarjeta, cerrarFormularioMutacion, "Mutación");
-}
 
-let contadorExcepcionesMontura = 0;
-function agregarExcepcionMontura() {
-    contadorExcepcionesMontura++;
-    const tiposDisponibles = [...new Set(personajes.flatMap(p => (p.tipo || "").split(',').map(t => t.trim())))];
-    
-    const div = document.createElement("div");
-    div.className = "item-excepcion";
-    
-    let opcionesTipos = `<option value="">Selecciona un Tipo</option>` + tiposDisponibles.map(t => `<option value="${t}">${t}</option>`).join('');
-    
-    div.innerHTML = `
-        <select class="exc-tipo" onchange="actualizarPersonajesExcepcion(this, 'montura-${contadorExcepcionesMontura}')">
-            ${opcionesTipos}
-        </select>
-        <select class="exc-personaje" id="exc-pers-montura-${contadorExcepcionesMontura}">
-            <option value="">Aplicar a todos del tipo</option>
-        </select>
-        <select class="exc-condicion" onchange="actualizarInputCondicion(this, 'montura-${contadorExcepcionesMontura}')">
-            <option value="Inmune">Inmune</option>
-            <option value="Destino">Destino</option>
-            <option value="Aumento">Aumento</option>
-            <option value="Debilidad">Debilidad</option>
-        </select>
-        <span id="exc-val-container-montura-${contadorExcepcionesMontura}" style="display:none;">
-            <input type="number" class="exc-porcentaje" placeholder="%">
-        </span>
-        <button type="button" onclick="this.parentElement.remove()">X</button>
-    `;
-    document.getElementById("lista-excepciones-montura").appendChild(div);
-}
+    if (typeof tarjetasGuardadas === 'undefined') {
+        window.tarjetasGuardadas = [];
+    }
+    tarjetasGuardadas.push(nuevaTarjeta);
 
-async function guardarTarjetaMontura() {
-    const nombre = document.getElementById("montura-nombre").value;
-    const desc = document.getElementById("montura-descripcion").value;
-    
-    if (!nombre) { alert("¡Debe incluir un nombre para la Montura!"); return; }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const rutaImagen = `Tarjetas/${nombreLimpio}.jpg`;
-    
-    const efectos = Array.from(document.getElementById("lista-efectos-montura").children).map(div => {
-        const select = div.querySelector('.efecto-atributo');
-        const atributo = select.disabled ? "velocidad" : select.value;
-        const valorEfecto = div.querySelector('.efecto-valor').value.trim();
-        let modificacion = parseInt(valorEfecto) || 0;
-        
-        if (atributo !== "velocidad" && valorEfecto === "") {
-            return null;
-        }
-        
-        if (atributo !== "velocidad" && modificacion > 0) {
-            modificacion = -modificacion;
-        }
-        
-        return {
-            atributo: atributo,
-            modificacion: modificacion
-        };
-    }).filter(efecto => efecto !== null);
-    
-    const tieneEfectosSecundariosInvalidos = efectos.some(efecto => efecto.atributo !== "velocidad" && efecto.modificacion >= 0);
-    if (tieneEfectosSecundariosInvalidos) {
-        alert("Los efectos secundarios deben ser negativos.");
-        return;
+    const personaje = personajes.find(p => p.id === idPropietarioTarjetaActual);
+    if (personaje) {
+        personaje.atributos = { ...nuevosAtributos };
     }
-    
-    const efectoVelocidad = efectos.find(efecto => efecto.atributo === "velocidad");
-    if (!efectoVelocidad || efectoVelocidad.modificacion <= 0) {
-        alert("La Montura debe aumentar Velocidad con un valor positivo.");
-        return;
-    }
-    
-    const excepciones = Array.from(document.getElementById("lista-excepciones-montura").children).map(div => ({
-        tipo: div.querySelector('.exc-tipo').value,
-        personajeId: div.querySelector('.exc-personaje').value,
-        condicion: div.querySelector('.exc-condicion').value,
-        porcentaje: parseInt(div.querySelector('.exc-porcentaje')?.value) || 0
-    }));
-    
-    const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: "Montura",
-        propietarioId: idPropietarioTarjetaActual,
-        nombre: nombre,
-        descripcion: desc,
-        imagen: rutaImagen,
-        efectos: efectos,
-        excepciones: excepciones
-    };
-    
-    let tarjetasRegistradas = [];
-    try {
-        const respuesta = await fetch("tarjeta.json");
-        if (respuesta.ok) {
-            tarjetasRegistradas = await respuesta.json();
-        }
-    } catch(error) {
-        console.warn("No se encontró tarjeta.json previo, se generará uno nuevo.");
-    }
-    
-    tarjetasRegistradas.push(nuevaTarjeta);
-    
-    const blob = new Blob([JSON.stringify(tarjetasRegistradas, null, 4)], { type: "application/json" });
+
+    const blob = new Blob([JSON.stringify(tarjetasGuardadas, null, 4)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -2315,432 +1814,485 @@ async function guardarTarjetaMontura() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    cerrarFormularioMutacion();
+    mostrarTarjetas(tarjetasGuardadas);
+
+    if (personaje) {
+        abrirModal(personaje);
+    }
+}
+
+function guardarTarjetaEquipamiento() {
+    const tipo = document.getElementById("tipo-tarjeta-equipamiento").value;
+    const nombre = document.getElementById("nombre-tarjeta-equipamiento").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-equipamiento").value;
+    const puntos = parseInt(document.getElementById("puntos-tarjeta-equipamiento").value) || 0;
+
+    if (!nombre.trim()) {
+        alert("El nombre es obligatorio.");
+        return;
+    }
+
+    const nuevaTarjeta = {
+        idTarjeta: "tarjeta_" + Date.now(),
+        propietarioId: idPropietarioTarjetaActual,
+        tipo: tipo,
+        nombre: nombre,
+        descripcion: descripcion,
+        efectos: [
+            {
+                atributo: "General", 
+                modificacion: puntos
+            }
+        ],
+        excepciones: []
+    };
+
+    if (typeof tarjetasGuardadas === 'undefined') {
+        window.tarjetasGuardadas = [];
+    }
+    tarjetasGuardadas.push(nuevaTarjeta);
+
+    const blob = new Blob([JSON.stringify(tarjetasGuardadas, null, 4)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tarjeta.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    cerrarFormularioEquipamiento();
+    mostrarTarjetas(tarjetasGuardadas);
     
-    cerrarFormularioMontura();
-    alert("¡Tarjeta guardada y descargada exitosamente!");
+    const personaje = personajes.find(p => p.id === idPropietarioTarjetaActual);
+    if (personaje) {
+        abrirModal(personaje);
+    }
+}
+function abrirFormularioInmunidad() {
+    document.getElementById("modal-tarjeta-historia").style.display = "none";
+    document.getElementById("nombre-tarjeta-inmunidad").value = "";
+    document.getElementById("descripcion-tarjeta-inmunidad").value = "";
+    document.getElementById("modal-formulario-inmunidad").style.display = "block";
+}
+
+function cerrarFormularioInmunidad() {
+    document.getElementById("modal-formulario-inmunidad").style.display = "none";
+}
+
+function guardarTarjetaInmunidad() {
+    const nombre = document.getElementById("nombre-tarjeta-inmunidad").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-inmunidad").value;
+
+    if (!nombre.trim()) {
+        alert("El nombre es obligatorio.");
+        return;
+    }
+
+    const nuevaTarjeta = {
+        idTarjeta: "tarjeta_" + Date.now(),
+        propietarioId: idPropietarioTarjetaActual,
+        tipo: "Inmunidad",
+        nombre: nombre,
+        descripcion: descripcion,
+        efectos: [],
+        excepciones: []
+    };
+
+    guardarYDescargarTarjeta(nuevaTarjeta);
+    cerrarFormularioInmunidad();
 }
 function abrirFormularioEnfermedad() {
     document.getElementById("modal-tarjeta-historia").style.display = "none";
+    document.getElementById("nombre-tarjeta-enfermedad").value = "";
+    document.getElementById("descripcion-tarjeta-enfermedad").value = "";
     document.getElementById("modal-formulario-enfermedad").style.display = "block";
-    document.getElementById("enfermedad-nombre").value = "";
-    document.getElementById("enfermedad-descripcion").value = "";
-    document.getElementById("enfermedad-atributo").value = "fuerza"; // Valor por defecto
 }
 
 function cerrarFormularioEnfermedad() {
     document.getElementById("modal-formulario-enfermedad").style.display = "none";
 }
 
-async function guardarTarjetaEnfermedad() {
-    const nombre = document.getElementById("enfermedad-nombre").value;
-    const desc = document.getElementById("enfermedad-descripcion").value;
-    const atributoElegido = document.getElementById("enfermedad-atributo").value;
-    
-    if (!nombre) { alert("¡Debe incluir un nombre para la tarjeta de Enfermedad!"); return; }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    
+function guardarTarjetaEnfermedad() {
+    const nombre = document.getElementById("nombre-tarjeta-enfermedad").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-enfermedad").value;
+    const atributo = document.getElementById("atributo-tarjeta-enfermedad").value;
+
+    if (!nombre.trim()) {
+        alert("El nombre es obligatorio.");
+        return;
+    }
+
     const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
+        idTarjeta: "tarjeta_" + Date.now(),
+        propietarioId: idPropietarioTarjetaActual,
         tipo: "Enfermedad",
-        propietarioId: idPropietarioTarjetaActual,
         nombre: nombre,
-        descripcion: desc,
-        imagen: `Tarjetas/${nombreLimpio}.jpg`,
-        atributoSeleccionado: atributoElegido,
-        efectoEspecial: "Cada turno disminuye un número aleatorio del 1 al 15 en todos sus atributos (sea o no usado)"
+        descripcion: descripcion,
+        efectos: [{ atributo: atributo, modificacion: 0 }],
+        excepciones: []
     };
-    
-    // Aprovechamos la función genérica que ya tienes en el código
-    guardarYDescargarGenerico(nuevaTarjeta, cerrarFormularioEnfermedad, "Enfermedad");
-}
-let tipoEntornoActual = "Territorio";
 
-function abrirFormularioTerritorio() {
-    tipoEntornoActual = "Territorio";
-    abrirFormularioEntornoBase();
+    guardarYDescargarTarjeta(nuevaTarjeta);
+    cerrarFormularioEnfermedad();
 }
+function abrirFormularioBendicion() { abrirFormularioBenMal('Bendición'); }
+function abrirFormularioMaldicion() { abrirFormularioBenMal('Maldición'); }
 
-function abrirFormularioCampoFuerza() {
-    tipoEntornoActual = "Campo De Fuerza";
-    abrirFormularioEntornoBase();
-}
-
-function abrirFormularioEntornoBase() {
+function abrirFormularioBenMal(tipo) {
     document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-entorno").style.display = "block";
-    document.getElementById("titulo-formulario-entorno").innerText = "CREAR TARJETA: " + tipoEntornoActual.toUpperCase();
-    document.getElementById("lista-efectos-entorno").innerHTML = "";
-    document.getElementById("entorno-nombre").value = "";
-    document.getElementById("entorno-descripcion").value = "";
-    
-    const selectTipo = document.getElementById("entorno-tipo-afectado");
-    const tiposDisponibles = [...new Set(personajes.flatMap(p => (p.tipo || "").split(',').map(t => t.trim())))];
-    selectTipo.innerHTML = `<option value="">Selecciona un Tipo</option>` + tiposDisponibles.map(t => `<option value="${t}">${t}</option>`).join('');
+    document.getElementById("titulo-formulario-ben-mal").innerText = `CREAR TARJETA: ${tipo.toUpperCase()}`;
+    document.getElementById("tipo-tarjeta-ben-mal").value = tipo;
+    document.getElementById("nombre-tarjeta-ben-mal").value = "";
+    document.getElementById("descripcion-tarjeta-ben-mal").value = "";
+    document.getElementById("puntos-tarjeta-ben-mal").value = 0;
+    document.getElementById("modal-formulario-ben-mal").style.display = "block";
 }
 
-function cerrarFormularioEntorno() {
-    document.getElementById("modal-formulario-entorno").style.display = "none";
+function cerrarFormularioBenMal() {
+    document.getElementById("modal-formulario-ben-mal").style.display = "none";
 }
 
-let contadorEfectosEntorno = 0;
-function agregarEfectoEntorno() {
-    contadorEfectosEntorno++;
-    const div = document.createElement("div");
-    div.className = "item-efecto";
-    div.innerHTML = `
-        <select class="efecto-atributo">
-            <option value="fuerza">Fuerza</option>
-            <option value="inteligencia">Inteligencia</option>
-            <option value="magia">Magia</option>
-            <option value="velocidad">Velocidad</option>
-            <option value="defensa">Defensa</option>
-        </select>
-        <input type="number" class="efecto-valor" placeholder="+/- Puntos">
-        <button type="button" onclick="this.parentElement.remove()">X</button>
-    `;
-    document.getElementById("lista-efectos-entorno").appendChild(div);
-}
+function guardarTarjetaBenMal() {
+    const tipo = document.getElementById("tipo-tarjeta-ben-mal").value;
+    const nombre = document.getElementById("nombre-tarjeta-ben-mal").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-ben-mal").value;
+    const puntos = parseInt(document.getElementById("puntos-tarjeta-ben-mal").value) || 0;
 
-async function guardarTarjetaEntorno() {
-    const nombre = document.getElementById("entorno-nombre").value;
-    const desc = document.getElementById("entorno-descripcion").value;
-    const tipoAfectado = document.getElementById("entorno-tipo-afectado").value;
-    
-    if (!nombre) { alert(`¡Debe incluir un nombre para el ${tipoEntornoActual}!`); return; }
-    if (!tipoAfectado) { alert("¡Debe seleccionar el tipo de personaje afectado!"); return; }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const rutaImagen = `Tarjetas/${nombreLimpio}.jpg`;
-    
-    const efectos = Array.from(document.getElementById("lista-efectos-entorno").children).map(div => ({
-        atributo: div.querySelector('.efecto-atributo').value,
-        modificacion: parseInt(div.querySelector('.efecto-valor').value) || 0
-    }));
-
-    const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: tipoEntornoActual,
-        propietarioId: idPropietarioTarjetaActual,
-        nombre: nombre,
-        descripcion: desc,
-        imagen: rutaImagen,
-        efectos: efectos,
-        tipoAfectado: tipoAfectado
-    };
-    
-    let tarjetasRegistradas = [];
-    try {
-        const respuesta = await fetch("tarjeta.json");
-        if (respuesta.ok) {
-            tarjetasRegistradas = await respuesta.json();
-        }
-    } catch(error) {
-        console.warn("No se encontró tarjeta.json previo.");
+    if (!nombre.trim()) {
+        alert("El nombre es obligatorio.");
+        return;
     }
-    
-    tarjetasRegistradas.push(nuevaTarjeta);
-    
-    const blob = new Blob([JSON.stringify(tarjetasRegistradas, null, 4)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tarjeta.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    cerrarFormularioEntorno();
-    alert(`¡Tarjeta ${tipoEntornoActual} guardada y descargada exitosamente!`);
-}
-function abrirFormularioConocimiento() {
-    document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-conocimiento").style.display = "block";
-    document.getElementById("conocimiento-nombre").value = "";
-    document.getElementById("conocimiento-descripcion").value = "";
-    document.getElementById("conocimiento-puntos").value = "";
-}
 
-function cerrarFormularioConocimiento() {
-    document.getElementById("modal-formulario-conocimiento").style.display = "none";
-}
-
-async function guardarTarjetaConocimiento() {
-    const nombre = document.getElementById("conocimiento-nombre").value;
-    const desc = document.getElementById("conocimiento-descripcion").value;
-    const puntos = parseInt(document.getElementById("conocimiento-puntos").value) || 0;
-    
-    if (!nombre) { alert("¡Debe incluir un nombre para el Conocimiento!"); return; }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const rutaImagen = `Tarjetas/${nombreLimpio}.jpg`;
-    
-    const efectos = [
-        { atributo: "inteligencia", modificacion: puntos }
-    ];
-    
     const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: "Conocimiento",
+        idTarjeta: "tarjeta_" + Date.now(),
         propietarioId: idPropietarioTarjetaActual,
+        tipo: tipo,
         nombre: nombre,
-        descripcion: desc,
-        imagen: rutaImagen,
-        efectos: efectos
+        descripcion: descripcion,
+        efectos: [{ atributo: "General", modificacion: puntos }],
+        excepciones: []
     };
-    
-    guardarYDescargarGenerico(nuevaTarjeta, cerrarFormularioConocimiento, "Conocimiento");
+
+    guardarYDescargarTarjeta(nuevaTarjeta);
+    cerrarFormularioBenMal();
 }
 
-function abrirFormularioBendicion() {
+function abrirFormularioConsumible() {
     document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-bendicion").style.display = "block";
-    document.getElementById("bendicion-nombre").value = "";
-    document.getElementById("bendicion-descripcion").value = "";
-    document.getElementById("bendicion-puntos").value = "";
+    document.getElementById("nombre-tarjeta-consumible").value = "";
+    document.getElementById("descripcion-tarjeta-consumible").value = "";
+    document.getElementById("valor-tarjeta-consumible").value = 0;
+    document.getElementById("modal-formulario-consumible").style.display = "block";
 }
 
-function cerrarFormularioBendicion() {
-    document.getElementById("modal-formulario-bendicion").style.display = "none";
+function cerrarFormularioConsumible() {
+    document.getElementById("modal-formulario-consumible").style.display = "none";
 }
 
-async function guardarTarjetaBendicion() {
-    const nombre = document.getElementById("bendicion-nombre").value;
-    const desc = document.getElementById("bendicion-descripcion").value;
-    const puntos = parseInt(document.getElementById("bendicion-puntos").value) || 0;
+function guardarTarjetaConsumible() {
+    const nombre = document.getElementById("nombre-tarjeta-consumible").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-consumible").value;
+    const atributo = document.getElementById("atributo-tarjeta-consumible").value;
+    const puntos = parseInt(document.getElementById("valor-tarjeta-consumible").value) || 0;
+    const turnos = parseInt(document.getElementById("turnos-tarjeta-consumible").value) || 1;
     
-    if (!nombre) { alert("¡Debe incluir un nombre para la Bendición!"); return; }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const rutaImagen = `Tarjetas/${nombreLimpio}.jpg`;
-    
-    const atributosBase = ["fuerza", "inteligencia", "magia", "velocidad", "defensa"];
-    const efectos = atributosBase.map(attr => ({
-        atributo: attr,
-        modificacion: puntos
-    }));
-    
-    const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: "Bendición",
-        propietarioId: idPropietarioTarjetaActual,
-        nombre: nombre,
-        descripcion: desc,
-        imagen: rutaImagen,
-        efectos: efectos
-    };
-    
-    guardarYDescargarGenerico(nuevaTarjeta, cerrarFormularioBendicion, "Bendición");
-}
-
-function abrirFormularioMaldicion() {
-    document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-maldicion").style.display = "block";
-    document.getElementById("maldicion-nombre").value = "";
-    document.getElementById("maldicion-descripcion").value = "";
-    document.getElementById("maldicion-puntos").value = "";
-}
-
-function cerrarFormularioMaldicion() {
-    document.getElementById("modal-formulario-maldicion").style.display = "none";
-}
-
-async function guardarTarjetaMaldicion() {
-    const nombre = document.getElementById("maldicion-nombre").value;
-    const desc = document.getElementById("maldicion-descripcion").value;
-    let puntos = parseInt(document.getElementById("maldicion-puntos").value) || 0;
-    
-    if (!nombre) { alert("¡Debe incluir un nombre para la Maldición!"); return; }
-    
-    // Asegurarse de que los puntos sean negativos
-    if (puntos > 0) {
-        puntos = -puntos;
+    if (!nombre.trim()) {
+        alert("El nombre es obligatorio.");
+        return;
     }
-    
-    const nombreLimpio = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const rutaImagen = `Tarjetas/${nombreLimpio}.jpg`;
-    
-    const atributosBase = ["fuerza", "inteligencia", "magia", "velocidad", "defensa"];
-    const efectos = atributosBase.map(attr => ({
-        atributo: attr,
-        modificacion: puntos
-    }));
-    
+
     const nuevaTarjeta = {
-        idTarjeta: "T-" + Date.now(),
-        tipo: "Maldición",
+        idTarjeta: "tarjeta_" + Date.now(),
         propietarioId: idPropietarioTarjetaActual,
+        tipo: "Consumible",
         nombre: nombre,
-        descripcion: desc,
-        imagen: rutaImagen,
-        efectos: efectos
+        descripcion: descripcion,
+        turnos: turnos,
+        efectos: [{ atributo: atributo, modificacion: puntos }],
+        excepciones: []
     };
-    
-    guardarYDescargarGenerico(nuevaTarjeta, cerrarFormularioMaldicion, "Maldición");
-}
 
-// Función auxiliar para no repetir código de guardado y descarga
-async function guardarYDescargarGenerico(nuevaTarjeta, funcionCerrar, tipoNombre) {
-    let tarjetasRegistradas = [];
-    try {
-        const respuesta = await fetch("tarjeta.json");
-        if (respuesta.ok) {
-            tarjetasRegistradas = await respuesta.json();
-        }
-    } catch(error) {
-        console.warn("No se encontró tarjeta.json previo.");
-    }
-    
-    tarjetasRegistradas.push(nuevaTarjeta);
-    
-    const blob = new Blob([JSON.stringify(tarjetasRegistradas, null, 4)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tarjeta.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    funcionCerrar();
-    alert(`¡Tarjeta ${tipoNombre} guardada y descargada exitosamente!`);
+    guardarYDescargarTarjeta(nuevaTarjeta);
+    cerrarFormularioConsumible();
 }
-
-let tipoVinculoActual = "";
 
 function abrirFormularioVinculo(tipo) {
-    tipoVinculoActual = tipo;
     document.getElementById("modal-tarjeta-historia").style.display = "none";
-    document.getElementById("modal-formulario-vinculo").style.display = "block";
-    document.getElementById("titulo-formulario-vinculo").innerText = "CREAR TARJETA: " + tipo.toUpperCase();
-    document.getElementById("vinculo-descripcion").value = "";
-    document.getElementById("vinculo-puntos").value = "";
-    document.getElementById("vinculo-nombre-generado").innerText = "";
+    document.getElementById("titulo-formulario-vinculo").innerText = `CREAR VÍNCULO: ${tipo.toUpperCase()}`;
+    document.getElementById("tipo-tarjeta-vinculo").value = tipo;
+    document.getElementById("descripcion-tarjeta-vinculo").value = "";
+    document.getElementById("puntos-tarjeta-vinculo").value = 0;
     
-    const selectPers = document.getElementById("vinculo-personajes");
-    if (tipo === "Grupo") {
-        selectPers.multiple = true;
-        selectPers.style.height = "150px";
-        document.getElementById("label-vinculo-personajes").innerText = "Selecciona los personajes (Mantén presionada la tecla Ctrl + clic para seleccionar varios):";
-    } else {
-        selectPers.multiple = false;
-        selectPers.style.height = "auto";
-        document.getElementById("label-vinculo-personajes").innerText = "Selecciona el personaje:";
-    }
-
-    selectPers.innerHTML = tipo === "Grupo" ? "" : `<option value="">Selecciona un Personaje</option>`;
+    const select = document.getElementById("personaje-tarjeta-vinculo");
+    select.innerHTML = "";
     personajes.forEach(p => {
-        if (p.id !== idPropietarioTarjetaActual) {
-            selectPers.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+        if(p.id !== idPropietarioTarjetaActual) {
+            const opt = document.createElement("option");
+            opt.value = p.id;
+            opt.text = p.nombre;
+            select.appendChild(opt);
         }
     });
-
-    selectPers.onchange = actualizarNombreVinculo;
+    
+    document.getElementById("modal-formulario-vinculo").style.display = "block";
 }
 
 function cerrarFormularioVinculo() {
     document.getElementById("modal-formulario-vinculo").style.display = "none";
 }
 
-function actualizarNombreVinculo() {
-    const selectPers = document.getElementById("vinculo-personajes");
-    const propietario = personajes.find(p => p.id === idPropietarioTarjetaActual);
-    if (!propietario) return;
+function guardarTarjetaVinculo() {
+    const tipo = document.getElementById("tipo-tarjeta-vinculo").value;
+    const personajeSeleccionadoId = document.getElementById("personaje-tarjeta-vinculo").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-vinculo").value;
+    const puntos = parseInt(document.getElementById("puntos-tarjeta-vinculo").value) || 0;
 
-    let nombresSeleccionados = [];
-    for (let option of selectPers.options) {
-        if (option.selected && option.value) {
-            nombresSeleccionados.push(option.text);
-        }
+    const pOrigen = personajes.find(p => p.id === idPropietarioTarjetaActual);
+    const pDestino = personajes.find(p => p.id === personajeSeleccionadoId);
+    
+    if (!pOrigen || !pDestino) return;
+
+    const nombreId1 = `${pOrigen.nombre} - ${pDestino.nombre}`;
+    const nombreId2 = `${pDestino.nombre} - ${pOrigen.nombre}`;
+
+    const tarjeta1 = {
+        idTarjeta: "tarjeta_" + Date.now(),
+        propietarioId: idPropietarioTarjetaActual,
+        tipo: tipo,
+        nombre: nombreId1,
+        descripcion: descripcion,
+        puntosVinculo: puntos,
+        vinculadosIds: [personajeSeleccionadoId],
+        efectos: [],
+        excepciones: []
+    };
+
+    if (typeof tarjetasGuardadas === 'undefined') { window.tarjetasGuardadas = []; }
+    tarjetasGuardadas.push(tarjeta1);
+
+    if (["Aliado", "Rival", "Pareja"].includes(tipo)) {
+        const tarjeta2 = {
+            idTarjeta: "tarjeta_" + (Date.now() + 1),
+            propietarioId: personajeSeleccionadoId,
+            tipo: tipo,
+            nombre: nombreId2,
+            descripcion: descripcion,
+            puntosVinculo: puntos,
+            vinculadosIds: [idPropietarioTarjetaActual],
+            efectos: [],
+            excepciones: []
+        };
+        tarjetasGuardadas.push(tarjeta2);
     }
 
-    if (nombresSeleccionados.length > 0) {
-        document.getElementById("vinculo-nombre-generado").innerText = `Nombre de la Alianza: ${propietario.nombre} - ${nombresSeleccionados.join(" - ")}`;
-    } else {
-        document.getElementById("vinculo-nombre-generado").innerText = "";
-    }
+    actualizarJSON();
+    cerrarFormularioVinculo();
 }
 
-async function guardarTarjetaVinculo() {
-    const selectPers = document.getElementById("vinculo-personajes");
-    const desc = document.getElementById("vinculo-descripcion").value;
-    const puntos = parseInt(document.getElementById("vinculo-puntos").value) || 0;
+function abrirFormularioTerritorio() { abrirFormularioEntorno('Territorio'); }
+function abrirFormularioCampoFuerza() { abrirFormularioEntorno('Campo De Fuerza'); }
+
+function abrirFormularioEntorno(tipo) {
+    document.getElementById("modal-tarjeta-historia").style.display = "none";
+    document.getElementById("titulo-formulario-entorno").innerText = `CREAR ENTORNO: ${tipo.toUpperCase()}`;
+    document.getElementById("tipo-tarjeta-entorno").value = tipo;
+    document.getElementById("nombre-tarjeta-entorno").value = "";
+    document.getElementById("descripcion-tarjeta-entorno").value = "";
+    document.getElementById("puntos-tarjeta-entorno").value = 0;
+    document.getElementById("modal-formulario-entorno").style.display = "block";
+}
+
+function cerrarFormularioEntorno() {
+    document.getElementById("modal-formulario-entorno").style.display = "none";
+}
+let puntosMutacionDisponibles = 0;
+let mutacionDiferencias = { fuerza: 0, inteligencia: 0, velocidad: 0, magia: 0, defensa: 0 };
+let mutacionValoresOriginales = { fuerza: 0, inteligencia: 0, velocidad: 0, magia: 0, defensa: 0 };
+
+function abrirFormularioMutacion() {
+    document.getElementById("modal-tarjeta-historia").style.display = "none";
+    document.getElementById("nombre-tarjeta-mutacion").value = "";
+    document.getElementById("descripcion-tarjeta-mutacion").value = "";
     
-    let seleccionados = [];
-    for (let option of selectPers.options) {
-        if (option.selected && option.value) {
-            seleccionados.push({ id: option.value, nombre: option.text });
-        }
+    const personaje = personajes.find(p => p.id === idPropietarioTarjetaActual);
+    if (personaje && personaje.atributos) {
+        mutacionValoresOriginales = { ...personaje.atributos };
+    } else {
+        mutacionValoresOriginales = { fuerza: 0, inteligencia: 0, velocidad: 0, magia: 0, defensa: 0 };
     }
-
-    if (seleccionados.length === 0) { alert("¡Debe seleccionar al menos un personaje!"); return; }
-    if (!puntos) { alert("¡Debe indicar la cantidad de puntos!"); return; }
     
-    const propietario = personajes.find(p => p.id === idPropietarioTarjetaActual);
-    const nombreTarjeta = `${propietario.nombre} - ${seleccionados.map(s => s.nombre).join(" - ")}`;
-    const nombreLimpio = nombreTarjeta.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
-    const rutaImagen = `Tarjetas/${nombreLimpio}.jpg`;
-    const idsSeleccionados = seleccionados.map(s => s.id);
-    
-    let tarjetasAguardar = [];
-
-    tarjetasAguardar.push({
-        idTarjeta: "T-" + Date.now() + "-1",
-        tipo: tipoVinculoActual,
-        propietarioId: idPropietarioTarjetaActual,
-        vinculadosIds: idsSeleccionados,
-        nombre: nombreTarjeta,
-        descripcion: desc,
-        imagen: rutaImagen,
-        puntosVinculo: puntos,
-        efectos: []
+    const atributos = ["fuerza", "inteligencia", "velocidad", "magia", "defensa"];
+    atributos.forEach(attr => {
+        if (mutacionValoresOriginales[attr] === undefined) {
+            mutacionValoresOriginales[attr] = 0;
+        }
     });
+    
+    mutacionDiferencias = { fuerza: 0, inteligencia: 0, velocidad: 0, magia: 0, defensa: 0 };
+    puntosMutacionDisponibles = 0;
+    
+    renderizarAtributosMutacion();
+    document.getElementById("modal-formulario-mutacion").style.display = "block";
+}
 
-    if (tipoVinculoActual === "Grupo") {
-        idsSeleccionados.forEach((idVinculado, index) => {
-            let vinculadosDeEste = [idPropietarioTarjetaActual, ...idsSeleccionados.filter(id => id !== idVinculado)];
-            tarjetasAguardar.push({
-                idTarjeta: "T-" + Date.now() + "-" + (index + 2),
-                tipo: tipoVinculoActual,
-                propietarioId: idVinculado,
-                vinculadosIds: vinculadosDeEste,
-                nombre: nombreTarjeta,
-                descripcion: desc,
-                imagen: rutaImagen,
-                puntosVinculo: puntos,
-                efectos: []
-            });
-        });
-    } 
-    else if (tipoVinculoActual === "Pareja") {
-        tarjetasAguardar.push({
-            idTarjeta: "T-" + Date.now() + "-2",
-            tipo: tipoVinculoActual,
-            propietarioId: idsSeleccionados[0],
-            vinculadosIds: [idPropietarioTarjetaActual],
-            nombre: nombreTarjeta,
-            descripcion: desc,
-            imagen: rutaImagen,
-            puntosVinculo: puntos,
-            efectos: []
-        });
-    }
+function cerrarFormularioMutacion() {
+    document.getElementById("modal-formulario-mutacion").style.display = "none";
+}
 
-    let tarjetasRegistradas = [];
-    try {
-        const respuesta = await fetch("tarjeta.json");
-        if (respuesta.ok) {
-            tarjetasRegistradas = await respuesta.json();
+function renderizarAtributosMutacion() {
+    document.getElementById("puntos-mutacion-disponibles").innerText = puntosMutacionDisponibles;
+    const contenedor = document.getElementById("contenedor-atributos-mutacion");
+    contenedor.innerHTML = "";
+    
+    const atributos = ["fuerza", "inteligencia", "velocidad", "magia", "defensa"];
+    
+    atributos.forEach(attr => {
+        const valOriginal = mutacionValoresOriginales[attr];
+        const dif = mutacionDiferencias[attr];
+        const valFinal = Math.max(0, valOriginal + dif);
+        
+        const div = document.createElement("div");
+        div.style.display = "flex";
+        div.style.justifyContent = "space-between";
+        div.style.alignItems = "center";
+        div.style.background = "#2b2b2b";
+        div.style.padding = "10px";
+        div.style.border = "1px solid #4a3621";
+        div.style.borderRadius = "4px";
+        
+        div.innerHTML = `
+            <span style="color: #eeeeee; text-transform: uppercase; width: 100px; font-weight: bold; font-size: 12px;">${attr}</span>
+            <span style="color: #88c0d0; width: 60px; text-align: left; font-size: 12px;">Base: ${valOriginal}</span>
+            <div style="display: flex; align-items: center; gap: 10px; background: #1a1a1a; border-radius: 20px; padding: 3px 8px;">
+                <button onclick="modificarPuntoMutacion('${attr}', -1)" style="width: 28px; height: 28px; border-radius: 50%; font-weight: bold; cursor: pointer; background: #ff8888; color: #111; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center;" ${valFinal <= 0 ? 'disabled' : ''}>-</button>
+                <span style="width: 35px; text-align: center; font-size: 16px; color: ${dif > 0 ? '#88ff88' : (dif < 0 ? '#ff8888' : '#fff')}; font-weight: bold;">${dif > 0 ? '+' : ''}${dif}</span>
+                <button onclick="modificarPuntoMutacion('${attr}', 1)" style="width: 28px; height: 28px; border-radius: 50%; font-weight: bold; cursor: pointer; background: #88ff88; color: #111; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center;" ${puntosMutacionDisponibles <= 0 ? 'disabled' : ''}>+</button>
+            </div>
+            <span style="color: #ffcc00; width: 70px; text-align: right; font-weight: bold; font-size: 12px;">Final: ${valFinal}</span>
+        `;
+        contenedor.appendChild(div);
+    });
+}
+
+function modificarPuntoMutacion(attr, delta) {
+    const valOriginal = mutacionValoresOriginales[attr];
+    const difActual = mutacionDiferencias[attr];
+    
+    if (delta < 0) {
+        if (valOriginal + difActual > 0) {
+            mutacionDiferencias[attr]--;
+            puntosMutacionDisponibles++;
         }
-    } catch(error) {
-        console.warn("No se encontró tarjeta.json previo.");
+    } else if (delta > 0) {
+        if (puntosMutacionDisponibles > 0) {
+            mutacionDiferencias[attr]++;
+            puntosMutacionDisponibles--;
+        }
     }
     
-    tarjetasRegistradas.push(...tarjetasAguardar);
+    renderizarAtributosMutacion();
+}
+
+function guardarTarjetaMutacion() {
+    const nombre = document.getElementById("nombre-tarjeta-mutacion").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-mutacion").value;
     
-    const blob = new Blob([JSON.stringify(tarjetasRegistradas, null, 4)], { type: "application/json" });
+    if (!nombre.trim()) {
+        alert("El nombre es obligatorio.");
+        return;
+    }
+    
+    if (puntosMutacionDisponibles > 0) {
+        alert("Debes asignar todos los puntos que has restado antes de guardar la mutación.");
+        return;
+    }
+
+    const efectosMutacion = [];
+    for (const [attr, dif] of Object.entries(mutacionDiferencias)) {
+        if (dif !== 0) {
+            efectosMutacion.push({ atributo: attr, modificacion: dif });
+        }
+    }
+
+    if (efectosMutacion.length === 0) {
+        alert("No has realizado ninguna mutación en los atributos.");
+        return;
+    }
+
+    const nuevaTarjeta = {
+        idTarjeta: "tarjeta_" + Date.now(),
+        propietarioId: idPropietarioTarjetaActual,
+        tipo: "Mutación",
+        nombre: nombre,
+        descripcion: descripcion,
+        efectos: efectosMutacion,
+        excepciones: []
+    };
+
+    if (typeof guardarYDescargarTarjeta === 'function') {
+        guardarYDescargarTarjeta(nuevaTarjeta);
+    } else {
+        if (typeof tarjetasGuardadas === 'undefined') { window.tarjetasGuardadas = []; }
+        tarjetasGuardadas.push(nuevaTarjeta);
+        
+        const blob = new Blob([JSON.stringify(tarjetasGuardadas, null, 4)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "tarjeta.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        mostrarTarjetas(tarjetasGuardadas);
+        const personaje = personajes.find(p => p.id === idPropietarioTarjetaActual);
+        if (personaje) {
+            abrirModal(personaje);
+        }
+    }
+    
+    cerrarFormularioMutacion();
+}
+function guardarTarjetaEntorno() {
+    const tipo = document.getElementById("tipo-tarjeta-entorno").value;
+    const nombre = document.getElementById("nombre-tarjeta-entorno").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-entorno").value;
+    const puntos = parseInt(document.getElementById("puntos-tarjeta-entorno").value) || 0;
+    const tipoAfectado = document.getElementById("tipo-afectado-entorno").value;
+
+    if (!nombre.trim()) {
+        alert("El nombre es obligatorio.");
+        return;
+    }
+
+    const nuevaTarjeta = {
+        idTarjeta: "tarjeta_" + Date.now(),
+        propietarioId: idPropietarioTarjetaActual,
+        tipo: tipo,
+        nombre: nombre,
+        descripcion: descripcion,
+        tipoAfectado: tipoAfectado,
+        efectos: [{ atributo: "General", modificacion: puntos }],
+        excepciones: []
+    };
+
+    guardarYDescargarTarjeta(nuevaTarjeta);
+    cerrarFormularioEntorno();
+}
+
+function guardarYDescargarTarjeta(nuevaTarjeta) {
+    if (typeof tarjetasGuardadas === 'undefined') { window.tarjetasGuardadas = []; }
+    tarjetasGuardadas.push(nuevaTarjeta);
+    actualizarJSON();
+}
+
+function actualizarJSON() {
+    const blob = new Blob([JSON.stringify(tarjetasGuardadas, null, 4)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -2750,6 +2302,193 @@ async function guardarTarjetaVinculo() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    cerrarFormularioVinculo();
-    alert(`¡Tarjeta(s) de ${tipoVinculoActual} guardada(s) y descargada(s) exitosamente!`);
+    mostrarTarjetas(tarjetasGuardadas);
+    
+    const personaje = personajes.find(p => p.id === idPropietarioTarjetaActual);
+    if (personaje) {
+        abrirModal(personaje);
+    }
+}
+function abrirFormularioMiedo() {
+    abrirFormularioMiedoDebilidad('Miedo');
+}
+
+function abrirFormularioDebilidad() {
+    abrirFormularioMiedoDebilidad('Debilidad');
+}
+
+function abrirFormularioMiedoDebilidad(tipo) {
+    document.getElementById("modal-tarjeta-historia").style.display = "none";
+    document.getElementById("titulo-formulario-miedo-debilidad").innerText = `CREAR TARJETA: ${tipo.toUpperCase()}`;
+    document.getElementById("tipo-tarjeta-miedo-debilidad").value = tipo;
+    document.getElementById("nombre-tarjeta-miedo-debilidad").value = "";
+    document.getElementById("descripcion-tarjeta-miedo-debilidad").value = "";
+    document.getElementById("tipo-personaje-miedo-debilidad").value = "";
+    
+    const selectPersonaje = document.getElementById("personaje-especifico-miedo-debilidad");
+    selectPersonaje.innerHTML = '<option value="">-- Todo el tipo --</option>';
+    document.getElementById("contenedor-selector-personaje-miedo").style.display = "none";
+    
+    document.getElementById("modal-formulario-miedo-debilidad").style.display = "block";
+}
+
+function cerrarFormularioMiedoDebilidad() {
+    document.getElementById("modal-formulario-miedo-debilidad").style.display = "none";
+}
+
+function actualizarPersonajesPorTipoMiedoDebilidad() {
+    const tipoSeleccionado = document.getElementById("tipo-personaje-miedo-debilidad").value;
+    const contenedor = document.getElementById("contenedor-selector-personaje-miedo");
+    const selectPersonaje = document.getElementById("personaje-especifico-miedo-debilidad");
+    
+    selectPersonaje.innerHTML = '<option value="">-- Todo el tipo --</option>';
+    
+    if (!tipoSeleccionado) {
+        contenedor.style.display = "none";
+        return;
+    }
+    
+    const filtrados = personajes.filter(p => p.tipo && p.tipo.includes(tipoSeleccionado));
+    filtrados.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.text = p.nombre;
+        selectPersonaje.appendChild(opt);
+    });
+    
+    contenedor.style.display = "block";
+}
+
+function guardarTarjetaMiedoDebilidad() {
+    const tipoTarjeta = document.getElementById("tipo-tarjeta-miedo-debilidad").value;
+    const nombre = document.getElementById("nombre-tarjeta-miedo-debilidad").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-miedo-debilidad").value;
+    const tipoPersonaje = document.getElementById("tipo-personaje-miedo-debilidad").value;
+    const personajeId = document.getElementById("personaje-especifico-miedo-debilidad").value;
+
+    if (!nombre.trim()) {
+        alert("El nombre es obligatorio.");
+        return;
+    }
+
+    if (!tipoPersonaje) {
+        alert("Debes seleccionar un tipo de personaje.");
+        return;
+    }
+
+    const excepcion = {
+        tipo: tipoPersonaje,
+        condicion: "Debilidad"
+    };
+
+    if (personajeId) {
+        excepcion.personajeId = personajeId;
+    }
+
+    const nuevaTarjeta = {
+        idTarjeta: "tarjeta_" + Date.now(),
+        propietarioId: idPropietarioTarjetaActual,
+        tipo: tipoTarjeta,
+        nombre: nombre,
+        descripcion: descripcion,
+        efectos: [],
+        excepciones: [excepcion]
+    };
+
+    guardarYDescargarTarjeta(nuevaTarjeta);
+    cerrarFormularioMiedoDebilidad();
+}
+function abrirFormularioDestino(tipo) {
+    document.getElementById("modal-tarjeta-historia").style.display = "none";
+    document.getElementById("titulo-formulario-destino").innerText = `CREAR TARJETA: ${tipo.toUpperCase()}`;
+    document.getElementById("tipo-tarjeta-destino").value = tipo;
+    document.getElementById("nombre-tarjeta-destino").value = "";
+    document.getElementById("descripcion-tarjeta-destino").value = "";
+    document.getElementById("tipo-personaje-destino").value = "";
+    
+    const selectPersonaje = document.getElementById("personaje-especifico-destino");
+    selectPersonaje.innerHTML = '<option value="">-- Todo el tipo --</option>';
+    document.getElementById("contenedor-selector-personaje-destino").style.display = "none";
+
+    const contenedorDuelos = document.getElementById("contenedor-duelos-destino");
+    if (tipo === "Venganza") {
+        contenedorDuelos.style.display = "none";
+    } else {
+        contenedorDuelos.style.display = "block";
+        document.getElementById("duelos-tarjeta-destino").value = "1";
+    }
+    
+    document.getElementById("modal-formulario-destino").style.display = "block";
+}
+
+function cerrarFormularioDestino() {
+    document.getElementById("modal-formulario-destino").style.display = "none";
+}
+
+function actualizarPersonajesPorTipoDestino() {
+    const tipoSeleccionado = document.getElementById("tipo-personaje-destino").value;
+    const contenedor = document.getElementById("contenedor-selector-personaje-destino");
+    const selectPersonaje = document.getElementById("personaje-especifico-destino");
+    
+    selectPersonaje.innerHTML = '<option value="">-- Todo el tipo --</option>';
+    
+    if (!tipoSeleccionado) {
+        contenedor.style.display = "none";
+        return;
+    }
+    
+    const filtrados = personajes.filter(p => p.tipo && p.tipo.includes(tipoSeleccionado));
+    filtrados.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.text = p.nombre;
+        selectPersonaje.appendChild(opt);
+    });
+    
+    contenedor.style.display = "block";
+}
+
+function guardarTarjetaDestino() {
+    const tipoTarjeta = document.getElementById("tipo-tarjeta-destino").value;
+    const nombre = document.getElementById("nombre-tarjeta-destino").value;
+    const descripcion = document.getElementById("descripcion-tarjeta-destino").value;
+    const tipoPersonaje = document.getElementById("tipo-personaje-destino").value;
+    const personajeId = document.getElementById("personaje-especifico-destino").value;
+    const duelos = document.getElementById("duelos-tarjeta-destino").value;
+
+    if (!nombre.trim()) {
+        alert("El nombre es obligatorio.");
+        return;
+    }
+
+    if (!tipoPersonaje) {
+        alert("Debes seleccionar un tipo de personaje.");
+        return;
+    }
+
+    const excepcion = {
+        tipo: tipoPersonaje,
+        condicion: "Destino"
+    };
+
+    if (personajeId) {
+        excepcion.personajeId = personajeId;
+    }
+
+    const nuevaTarjeta = {
+        idTarjeta: "tarjeta_" + Date.now(),
+        propietarioId: idPropietarioTarjetaActual,
+        tipo: tipoTarjeta,
+        nombre: nombre,
+        descripcion: descripcion,
+        efectos: [],
+        excepciones: [excepcion]
+    };
+
+    if (tipoTarjeta !== "Venganza") {
+        nuevaTarjeta.duelos = parseInt(duelos) || 1;
+    }
+
+    guardarYDescargarTarjeta(nuevaTarjeta);
+    cerrarFormularioDestino();
 }

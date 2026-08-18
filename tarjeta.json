@@ -1,67 +1,11 @@
 [
     {
-        "idTarjeta": "T-1786649581624",
-        "tipo": "Miedo",
+        "idTarjeta": "tarjeta_1787071824855",
         "propietarioId": "xenia",
+        "tipo": "Inmunidad",
         "nombre": "Prueba",
-        "descripcion": "Prueba",
-        "imagen": "Tarjetas/prueba.jpg",
-        "condicionRival": {
-            "tipo": "Demonio",
-            "personajeId": ""
-        },
-        "efectos": [
-            {
-                "atributo": "inteligencia",
-                "modificacion": 1,
-                "esFijo": true
-            }
-        ]
-    },{
-        "idTarjeta": "T-1786649581625",
-        "tipo": "Miedo",
-        "propietarioId": "xenia",
-        "nombre": "Prueba",
-        "descripcion": "Prueba",
-        "imagen": "Tarjetas/prueba.jpg",
-        "condicionRival": {
-            "tipo": "vamprio",
-            "personajeId": ""
-        },
-        "efectos": [
-            {
-                "atributo": "inteligencia",
-                "modificacion": 1,
-                "esFijo": true
-            }
-        ]
-    },
-    {
-        "idTarjeta": "T-1786650011275",
-        "tipo": "Debilidad",
-        "propietarioId": "zhautung",
-        "nombre": "Prueba",
-        "descripcion": "Prueba",
-        "imagen": "Tarjetas/prueba.jpg",
-        "condicionesRival": [
-            {
-                "tipo": "Bruja",
-                "personajeId": ""
-            },
-            {
-                "tipo": "Demonio",
-                "personajeId": ""
-            }
-        ],
-        "efectos": [
-            {
-                "atributo": "fuerza",
-                "modificacion": -10
-            },
-            {
-                "atributo": "inteligencia",
-                "modificacion": -10
-            }
-        ]
+        "descripcion": "Prueab",
+        "efectos": [],
+        "excepciones": []
     }
 ]
